@@ -32,7 +32,7 @@
 		"-v=/database/:/database:rw",
 		"-v=/database/splits/:/splits:rw",
 		"-v=/database/:/database_ssd:rw",
-		"-v=/database/models_new/:/models:rw",
+		"-v=/database/nerf_model/:/models:rw",
 		"-v=/database/results/:/results:rw",
 		"--rm",
 		"--net=host",

@@ -14,7 +14,11 @@
             },
             "options": {"env": {"PYTORCH_JIT":"1"}},
             "args": [
-                "nerf.py"
+                "nerf.py",
+                "--accelerator=gpu",
+                "--devices=1",
+                "--homogeneous_projection=True",
+                "--batch=4096"
             ]
         }
     ]

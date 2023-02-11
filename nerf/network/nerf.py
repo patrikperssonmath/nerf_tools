@@ -4,11 +4,16 @@ from torch import nn
 
 class Nerf(nn.Module):
 
-    def __init__(self, Lp, Ld) -> None:
+    def __init__(self, Lp, Ld, homogeneous_projection=False) -> None:
         super().__init__()
 
+        pos_dim = 3
+
+        if homogeneous_projection:
+            pos_dim +=1
+
         self.dnn1 = nn.Sequential(
-            nn.Linear(2*3*Lp, 256),
+            nn.Linear(2*pos_dim*Lp, 256),
             nn.ReLU(),
             nn.Linear(256, 256),
             nn.ReLU(),
@@ -21,7 +26,7 @@ class Nerf(nn.Module):
         )
 
         self.dnn2 = nn.Sequential(
-            nn.Linear(2*3*Lp+256, 256),
+            nn.Linear(2*pos_dim*Lp+256, 256),
             nn.ReLU(),
             nn.Linear(256, 256),
             nn.ReLU(),

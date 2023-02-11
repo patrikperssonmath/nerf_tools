@@ -4,14 +4,14 @@ from torch import nn
 
 class NerfRender(nn.Module):
 
-    def __init__(self, pose_embedding, direction_embedding, nerf) -> None:
+    def __init__(self, pos_embedding, direction_embedding, nerf) -> None:
         super().__init__()
 
-        self.pose_embedding = pose_embedding
+        self.pose_embedding = pos_embedding
         self.direction_embedding = direction_embedding
         self.nerf = nerf
 
-    def forward(self, ray, t, data=None):
+    def forward(self, ray, t, data=None, sorted=False):
 
         o, d = torch.split(ray.unsqueeze(-2), [3, 3], dim=-1)
         
@@ -25,11 +25,12 @@ class NerfRender(nn.Module):
 
         sigma, color = self.nerf(x, d, data)
 
-        return self.integrate(t, sigma, color)
+        return self.integrate(t, sigma, color, sorted)
 
-    def integrate(self, t, sigma, c):
+    def integrate(self, t, sigma, c, sorted = False):
 
-        t, _ = torch.sort(t, dim=-2)
+        if not sorted:
+            t, _ = torch.sort(t, dim=-2)
 
         dt = t[..., 1:, :] - t[..., 0:-1, :]
 

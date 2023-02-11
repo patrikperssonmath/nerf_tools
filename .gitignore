@@ -163,3 +163,5 @@ config_server.yml
 
 *.simg
 *.eps
+
+lightning_logs
