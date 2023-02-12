@@ -1,13 +1,21 @@
 from train.LiNerf import LiNerf
 from dataset.colmap_solution import ColmapSolution
 from dataset.ray_loader import RayLoader
+from dataset.image_loader import ImageLoader
 
 from torch.utils.data import DataLoader
+import torch
+
 
 class Trainer:
     def __init__(self, trainer, model_path, dataset_path, batch, num_workers, **kwargs) -> None:
         self.model = LiNerf(**kwargs)
-        self.model_path = model_path
+
+        if model_path:
+            self.model_path = model_path
+        else:
+            self.model_path = None
+        
         self.dataset_path = dataset_path
         self.batch = batch
         self.num_workers = num_workers
@@ -31,14 +39,23 @@ class Trainer:
 
     def load_dataset(self):
 
-        return RayLoader(ColmapSolution(self.dataset_path, 0))
+        return RayLoader(ColmapSolution(self.dataset_path, 0)), ImageLoader(ColmapSolution(self.dataset_path, 0))
 
     def run(self):
 
-        train_loader = DataLoader(self.load_dataset(),
+        train_dataset, test_dataset = self.load_dataset()
+
+        train_loader = DataLoader(train_dataset,
                                   self.batch,
                                   True,
                                   num_workers=self.num_workers)
-        
 
-        self.trainer.fit(model=self.model, train_dataloaders=train_loader)
+        test_loader = DataLoader(test_dataset,
+                                 1,
+                                 False,
+                                 num_workers=self.num_workers)
+
+        self.trainer.fit(model=self.model,
+                         train_dataloaders=train_loader,
+                         val_dataloaders=test_loader,
+                         ckpt_path=self.model_path)

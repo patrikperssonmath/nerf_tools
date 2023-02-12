@@ -10,12 +10,13 @@
             "request": "launch",
             "program": "nerf.py",
             "console": "integratedTerminal",
-            "env": {"PYTORCH_JIT":"1"},
+            "env": {"PYTORCH_JIT":"0"},
             "args": [
                 "--accelerator=gpu",
                 "--devices=1",
                 "--homogeneous_projection=True",
-                "--batch=4096"
+                "--batch=4096",
+                //"--model_path=/workspace/lightning_logs/version_58/checkpoints/epoch=11-step=88212.ckpt"
             ],
             "justMyCode": false
         },

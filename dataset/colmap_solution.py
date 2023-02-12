@@ -38,6 +38,51 @@ class ColmapSolution(SFMSolution):
     def unit_rescale(self):
         pass
 
+    def extract_images(self):
+
+        images = []
+
+        for _, image in self.images.items():
+
+            img_path = os.path.join(self.path_root, "images", image.name)
+
+            with Image.open(img_path) as im:
+
+                im = np.asarray(im).astype(np.float32)/255.0
+
+            im = np.transpose(im, [2, 0, 1])
+
+            camera = self.cameras[image.camera_id]
+
+            R = image.qvec2rotmat()
+
+            t = image.tvec
+
+            T = np.eye(4)
+
+            T[0:3, 0:3] = R
+            T[0:3, 3] = t
+
+            point3d = np.stack(
+                [self.points[p_id].xyz for p_id in image.point3D_ids if p_id != -1], axis=-1)
+
+            point3d = R @ point3d + np.expand_dims(t, -1)
+
+            depth = point3d[2, :]
+
+            tn = np.min(depth)/2
+            tf = np.max(depth)*2
+
+            data = {"image": im, "T":T, "intrinsics":camera.params, "tn":tn, "tf":tf}
+
+            for key,val in data.items():
+
+                data[key] = val.astype(np.float32)
+
+            images.append(data)
+
+        return images
+
     def calculate_rays(self):
 
         total_rays = []

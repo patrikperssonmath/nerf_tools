@@ -4,6 +4,10 @@ from train.trainer import Trainer
 
 import pytorch_lightning as pl
 
+import torch
+
+torch.set_float32_matmul_precision("high")
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='')

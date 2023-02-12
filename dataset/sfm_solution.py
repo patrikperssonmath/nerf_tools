@@ -9,3 +9,6 @@ class SFMSolution:
 
     def calculate_rays(self):
         pass
+
+    def extract_images(self):
+        pass

@@ -1,6 +1,8 @@
 import torch
 
-from torch import nn
+from torch import jit, nn
+from typing import Dict, Optional
+
 
 class Nerf(nn.Module):
 
@@ -10,7 +12,7 @@ class Nerf(nn.Module):
         pos_dim = 3
 
         if homogeneous_projection:
-            pos_dim +=1
+            pos_dim += 1
 
         self.dnn1 = nn.Sequential(
             nn.Linear(2*pos_dim*Lp, 256),
@@ -49,14 +51,13 @@ class Nerf(nn.Module):
             nn.Linear(128, 3),
             nn.Sigmoid()
         )
-        
 
-    def forward(self, x, d, data=None):
+    def forward(self, x, d, data: Optional[Dict[str, torch.Tensor]] = None):
 
-        B,N,_ = x.shape
+        B, N, _ = x.shape
 
-        x = x.reshape(B*N,-1)
-        d = d.reshape(B*N,-1)
+        x = x.reshape(B*N, -1)
+        d = d.reshape(B*N, -1)
 
         F = self.dnn1(x)
 
@@ -70,5 +71,4 @@ class Nerf(nn.Module):
 
         color = self.color(F)
 
-        return sigma.view(B,N,-1), color.view(B,N,-1)
-
+        return sigma.view(B, N, -1), color.view(B, N, -1)

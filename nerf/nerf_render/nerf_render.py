@@ -1,6 +1,8 @@
 import torch
 
-from torch import nn
+from torch import jit, nn
+from typing import Dict, Optional
+
 
 class NerfRender(nn.Module):
 
@@ -11,12 +13,15 @@ class NerfRender(nn.Module):
         self.direction_embedding = direction_embedding
         self.nerf = nerf
 
-    def forward(self, ray, t, data=None, sorted=False):
+    def forward(self, ray, t, data: Optional[Dict[str, torch.Tensor]] = None, sorted: bool = False):
+
+        if not sorted:
+            t, _ = torch.sort(t, dim=-2)
 
         o, d = torch.split(ray.unsqueeze(-2), [3, 3], dim=-1)
-        
-        x = o + t[...,1:,:]*d
-        
+
+        x = o + t[..., 1:, :]*d
+
         x = self.pose_embedding(x)
 
         _, N, _ = x.shape
@@ -25,24 +30,20 @@ class NerfRender(nn.Module):
 
         sigma, color = self.nerf(x, d, data)
 
-        return self.integrate(t, sigma, color, sorted)
+        return self.integrate(t, sigma, color)
 
-    def integrate(self, t, sigma, c, sorted = False):
-
-        if not sorted:
-            t, _ = torch.sort(t, dim=-2)
+    def integrate(self, t, sigma, c):
 
         dt = t[..., 1:, :] - t[..., 0:-1, :]
 
         sdt = sigma*dt
 
-        Ti = torch.exp(-torch.cumsum(sdt, dim = -2))[..., 0:-1, :]
+        Ti = torch.exp(-torch.cumsum(sdt, dim=-2))[..., 0:-1, :]
 
-        Ti = torch.cat((torch.ones_like(Ti[...,0:1, :]), Ti), dim=-2)
+        Ti = torch.cat((torch.ones_like(Ti[..., 0:1, :]), Ti), dim=-2)
 
         alpha = (1.0 - torch.exp(-sdt))
 
         wi = Ti*alpha
-        
-        return (wi*c).sum(dim=-2), wi
 
+        return (wi*c).sum(dim=-2), (wi*t[..., 1:, :]).sum(dim=-2), wi
