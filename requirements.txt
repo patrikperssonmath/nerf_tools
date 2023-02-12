@@ -18,3 +18,5 @@ pytorch-lightning
 h5py
 hdf5plugin
 vtk
+mcubes
+trimesh
