@@ -4,15 +4,17 @@ from torch import jit, nn
 from typing import Dict, Optional
 
 
-class NerfRender(nn.Module):
+class NerfRender(jit.ScriptModule):
 
-    def __init__(self, pos_embedding, direction_embedding, nerf) -> None:
+    def __init__(self, pos_embedding, direction_embedding, nerf, max_batch = 2**14) -> None:
         super().__init__()
 
         self.pose_embedding = pos_embedding
         self.direction_embedding = direction_embedding
         self.nerf = nerf
+        self.max_batch = max_batch
 
+    @jit.script_method
     def forward(self, ray, t, data: Optional[Dict[str, torch.Tensor]] = None, sorted: bool = False):
 
         if not sorted:
@@ -31,6 +33,48 @@ class NerfRender(nn.Module):
         sigma, color = self.nerf(x, d, data)
 
         return self.integrate(t, sigma, color)
+
+    @jit.script_method
+    def evaluate(self, x, d, data: Optional[Dict[str, torch.Tensor]] = None):
+
+        v = torch.cat((x, d), dim=-1)
+
+        B = v.shape[0]
+
+        N = B // self.max_batch
+
+        rem = B % N
+
+        color_list = []
+
+        sigma_list = []
+
+        for i in range(N):
+
+            sigma, color = self.evaluate_batch(
+                v[i*self.max_batch:(i+1)*self.max_batch], data)
+
+            color_list.append(color.cpu())
+            sigma_list.append(sigma.cpu())
+
+        if rem > 0:
+
+            sigma, color= self.evaluate_batch(
+                v[N*self.max_batch:], data)
+
+            color_list.append(color.cpu())
+            sigma_list.append(sigma.cpu())
+
+        return torch.cat(sigma_list, dim=0), torch.cat(color_list, dim=0)
+
+    def evaluate_batch(self, pos_dir, data: Optional[Dict[str, torch.Tensor]] = None):
+
+        x, d = torch.split(pos_dir, [3, 3], dim=-1)
+
+        x = self.pose_embedding(x)
+        d = self.direction_embedding(d)
+
+        return self.nerf(x, d, data)
 
     def integrate(self, t, sigma, c):
 

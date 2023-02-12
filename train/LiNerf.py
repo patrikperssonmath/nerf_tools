@@ -44,49 +44,49 @@ class LiNerf(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
 
-        #return
+        with torch.no_grad():
 
-        image = batch["image"]
-        T = batch["T"]
-        intrinsics = batch["intrinsics"]
-        tn = batch["tn"]
-        tf = batch["tf"]
+            image = batch["image"]
+            T = batch["T"]
+            intrinsics = batch["intrinsics"]
+            tn = batch["tn"]
+            tf = batch["tf"]
 
-        B, C, H, W = image.shape
+            B, C, H, W = image.shape
 
-        rays = generate_rays(T, intrinsics, H, W)
+            rays = generate_rays(T, intrinsics, H, W)
 
-        tn = tn.view(B, 1, 1, 1).expand(-1, 1, H, W)
-        tf = tf.view(B, 1, 1, 1).expand(-1, 1, H, W)
+            tn = tn.view(B, 1, 1, 1).expand(-1, 1, H, W)
+            tf = tf.view(B, 1, 1, 1).expand(-1, 1, H, W)
 
-        rays = rays.view(B, -1, H*W).permute(0, 2, 1).reshape(B*H*W, -1)
-        tn = tn.view(B, -1, H*W).permute(0, 2, 1).reshape(B*H*W, -1)
-        tf = tf.view(B, -1, H*W).permute(0, 2, 1).reshape(B*H*W, -1)
+            rays = rays.view(B, -1, H*W).permute(0, 2, 1).reshape(B*H*W, -1)
+            tn = tn.view(B, -1, H*W).permute(0, 2, 1).reshape(B*H*W, -1)
+            tf = tf.view(B, -1, H*W).permute(0, 2, 1).reshape(B*H*W, -1)
 
-        t = uniform_sample(tn, tf, self.bins)
+            t = uniform_sample(tn, tf, self.bins)
 
-        #color, _ = self.render.forward(rays, t)
+            #color, _ = self.render.forward(rays, t)
 
-        color, depth = self.render_frame(rays, t)
+            color, depth = self.render_frame(rays, t)
 
-        color = color.reshape(B, H*W, -1).permute(0, 2, 1).view(B, -1, H, W)
-        depth = depth.reshape(B, H*W, -1).permute(0, 2, 1).view(B, -1, H, W)
+            color = color.reshape(B, H*W, -1).permute(0, 2, 1).view(B, -1, H, W)
+            depth = depth.reshape(B, H*W, -1).permute(0, 2, 1).view(B, -1, H, W)
 
-        self.logger.experiment.add_image(
-            f"img_rendered", make_grid(color, 4), batch_idx)
+            self.logger.experiment.add_image(
+                f"img_rendered", make_grid(color, 4), batch_idx)
 
-        depth_max = torch.max(depth.view(B, -1, H*W),
-                              dim=-1, keepdim=True)[0].view(-1, 1, 1, 1)
-        depth_min = torch.min(depth.view(B, -1, H*W),
-                              dim=-1, keepdim=True)[0].view(-1, 1, 1, 1)
+            depth_max = torch.max(depth.view(B, -1, H*W),
+                                dim=-1, keepdim=True)[0].view(-1, 1, 1, 1)
+            depth_min = torch.min(depth.view(B, -1, H*W),
+                                dim=-1, keepdim=True)[0].view(-1, 1, 1, 1)
 
-        depth = (depth-depth_min)/(depth_max-depth_min)
+            depth = (depth-depth_min)/(depth_max-depth_min)
 
-        self.logger.experiment.add_image(
-            f"depth_rendered", make_grid(depth, 4), batch_idx)
+            self.logger.experiment.add_image(
+                f"depth_rendered", make_grid(depth, 4), batch_idx)
 
-        self.logger.experiment.add_image(
-            f"img_gt", make_grid(image, 4), batch_idx)
+            self.logger.experiment.add_image(
+                f"img_gt", make_grid(image, 4), batch_idx)
 
     def render_frame(self, rays, t):
 

@@ -21,6 +21,22 @@
                 "--batch=4096",
                 "--model_path=/workspace/lightning_logs/version_2/checkpoints/epoch=2-step=22053.ckpt"
             ]
+        },
+        {
+            "label": "nerf_vis",
+            "type": "shell",
+            "command": "python",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "options": {"env": {"PYTORCH_JIT":"1"}},
+            "args": [
+                "nerf_visualize.py",
+                "--homogeneous_projection=True",
+                "--model_path=/workspace/lightning_logs/version_3/checkpoints/epoch=5-step=44106.ckpt"
+            ]
         }
     ]
 }

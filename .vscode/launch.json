@@ -20,5 +20,18 @@
             ],
             "justMyCode": false
         },
+        {
+            "name": "Python: nerf_vis",
+            "type": "python",
+            "request": "launch",
+            "program": "nerf_visualize.py",
+            "console": "integratedTerminal",
+            "env": {"PYTORCH_JIT":"0"},
+            "args": [
+                "--homogeneous_projection=True",
+                "--model_path=/workspace/lightning_logs/version_3/checkpoints/epoch=5-step=44106.ckpt"
+            ],
+            "justMyCode": false
+        },
     ]
 }

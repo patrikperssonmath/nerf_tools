@@ -165,3 +165,4 @@ config_server.yml
 *.eps
 
 lightning_logs
+*.dae
