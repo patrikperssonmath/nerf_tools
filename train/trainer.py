@@ -15,7 +15,7 @@ class Trainer:
             self.model_path = model_path
         else:
             self.model_path = None
-        
+
         self.dataset_path = dataset_path
         self.batch = batch
         self.num_workers = num_workers
@@ -28,8 +28,7 @@ class Trainer:
         parser = parent_parser.add_argument_group("Trainer")
 
         parser.add_argument("--model_path", type=str, default="")
-        parser.add_argument("--dataset_path", type=str,
-                            default="/database/colmap_test")
+        parser.add_argument("--dataset_path", type=str, default="")
         parser.add_argument("--batch", type=int, default=64)
         parser.add_argument("--num_workers", type=int, default=16)
 

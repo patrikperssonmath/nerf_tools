@@ -19,7 +19,8 @@
                 "--devices=1",
                 "--homogeneous_projection=True",
                 "--batch=4096",
-                "--model_path=/workspace/lightning_logs/version_2/checkpoints/epoch=2-step=22053.ckpt"
+                "--dataset_path=/database/nerf_dataset/golden_statue"
+                //"--model_path=/workspace/lightning_logs/version_2/checkpoints/epoch=2-step=22053.ckpt"
             ]
         },
         {
