@@ -135,27 +135,24 @@ class LiNerf(pl.LightningModule):
 
         t = uniform_sample(tn, tf, self.bins)
 
+        # do one round to find out important sampling regions
+
         with torch.no_grad():
 
             _, _, w = self.render.forward(rays, t, sorted_t=True)
 
-        #loss_l = (color_gt-color).square().mean()
-
-        #self.log("loss_l", loss_l)
-
-        # return loss_l
-
+        # sample according to w
         t_resamp = resample(w, t, 64, 256)
 
         t_resamp = torch.cat((t, t_resamp), dim=1)
 
         color, _, _ = self.render.forward(rays, t_resamp, sorted_t=False)
 
-        loss_h = (color_gt-color).square().mean()
+        loss = (color_gt-color).square().mean()
 
-        self.log("loss_h", loss_h)
+        self.log("loss_h", loss)
 
-        return loss_h #(loss_h + loss_l)/2
+        return loss
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
