@@ -2,10 +2,10 @@
 import torch
 import pytorch_lightning as pl
 
-from nerf.nerf_render import NerfRender
+from nerf_render import NerfRender
 from nerf.network import Embedding
 from nerf.network import Nerf
-from nerf.util import uniform_sample, generate_rays, resample
+from nerf_render.util import uniform_sample, generate_rays, resample
 from distutils.util import strtobool
 import torchvision
 

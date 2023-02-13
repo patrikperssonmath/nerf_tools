@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
-from nerf.nerf_render import NerfRender
+from nerf_render import NerfRender
 import mcubes
 import os
 
