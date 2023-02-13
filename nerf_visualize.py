@@ -1,7 +1,7 @@
 import argparse
 
 from train.LiNerf import LiNerf
-from visualize.nerf_visualize import NerfVisualize
+from nerf_visualizer import NerfVisualizer
 
 import torch
 
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     li_nerf = LiNerf.load_from_checkpoint(
         args.model_path, **vars(args)).to(device)
 
-    visualize = NerfVisualize(device, li_nerf.render, [-5, 5, -5, 5, 5, 15],
+    visualize = NerfVisualizer(device, li_nerf.render, [-5, 5, -5, 5, 5, 15],
                               args.samples, args.threshold, args.name)
 
     visualize.run()

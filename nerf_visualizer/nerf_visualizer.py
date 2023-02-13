@@ -6,7 +6,7 @@ import mcubes
 import os
 
 
-class NerfVisualize:
+class NerfVisualizer:
     def __init__(self, device, nerf_render: NerfRender, limits, nbr_samples, threshold, name="") -> None:
         self.device = device
         self.nerf_render = nerf_render
