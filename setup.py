@@ -14,7 +14,7 @@ setup(
     license = "MIT",
     keywords = "Nerf",
     url = "",
-    packages=find_packages(include=['nerf_render', 'nerf_render.*', 'nerf_visualizer', 'nerf_visualizer.*']),
+    packages=find_packages(include=['nerf_render', 'nerf_render.*', 'nerf_visualizer', 'nerf_visualizer.*', 'nerf', 'nerf.*']),
     long_description=read('readme.md'),
     classifiers=[
         "Development Status :: 3 - Alpha",
