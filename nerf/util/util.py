@@ -18,6 +18,26 @@ def uniform_sample(tn, tf, N: int):
 
     return t
 
+def resample(w, t, N:int, R:int):
+
+    t = t[..., 1:, :]
+
+    w = torch.nn.functional.interpolate(w.permute(0, 2, 1), R, mode="linear", align_corners=True).permute(0, 2, 1)
+    t = torch.nn.functional.interpolate(t.permute(0, 2, 1), R, mode="linear", align_corners=True).permute(0, 2, 1)
+
+    w_cdf = torch.cumsum(w, dim=1)
+
+    C = w_cdf[:, -1:]
+
+    w_cdf = w_cdf / C.where(C > 0, torch.ones_like(C))
+
+    B = w.shape[0]
+
+    u = torch.rand((B, N), device=w.device, dtype= w.dtype)
+
+    idx = torch.searchsorted(w_cdf.squeeze(-1), u, right=True).unsqueeze(-1).clamp(0, R-1)
+
+    return torch.gather(t, 1, idx)
 
 def generate_grid(H, W, **kwargs):
 

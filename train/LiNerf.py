@@ -5,7 +5,7 @@ import pytorch_lightning as pl
 from nerf.nerf_render import NerfRender
 from nerf.network import Embedding
 from nerf.network import Nerf
-from nerf.util import uniform_sample, generate_rays
+from nerf.util import uniform_sample, generate_rays, resample
 from distutils.util import strtobool
 import torchvision
 
@@ -17,8 +17,10 @@ def make_grid(image, output_nbr):
 
 
 class LiNerf(pl.LightningModule):
-    def __init__(self, Lp, Ld, bins, max_render_batch_power, homogeneous_projection, **kwargs):
+    def __init__(self, lr, Lp, Ld, bins, max_render_batch_power, homogeneous_projection, **kwargs):
         super().__init__()
+
+        self.lr = lr
 
         self.bins = bins
 
@@ -32,6 +34,7 @@ class LiNerf(pl.LightningModule):
     def add_model_specific_args(parent_parser):
         parser = parent_parser.add_argument_group("Nerf")
 
+        parser.add_argument("--lr", type=float, default=1e-3)
         parser.add_argument("--Lp", type=int, default=10)
         parser.add_argument("--Ld", type=int, default=4)
         parser.add_argument("--bins", type=int, default=64)
@@ -69,16 +72,18 @@ class LiNerf(pl.LightningModule):
 
             color, depth = self.render_frame(rays, t)
 
-            color = color.reshape(B, H*W, -1).permute(0, 2, 1).view(B, -1, H, W)
-            depth = depth.reshape(B, H*W, -1).permute(0, 2, 1).view(B, -1, H, W)
+            color = color.reshape(B, H*W, -1).permute(0,
+                                                      2, 1).view(B, -1, H, W)
+            depth = depth.reshape(B, H*W, -1).permute(0,
+                                                      2, 1).view(B, -1, H, W)
 
             self.logger.experiment.add_image(
                 f"img_rendered", make_grid(color, 4), batch_idx)
 
             depth_max = torch.max(depth.view(B, -1, H*W),
-                                dim=-1, keepdim=True)[0].view(-1, 1, 1, 1)
+                                  dim=-1, keepdim=True)[0].view(-1, 1, 1, 1)
             depth_min = torch.min(depth.view(B, -1, H*W),
-                                dim=-1, keepdim=True)[0].view(-1, 1, 1, 1)
+                                  dim=-1, keepdim=True)[0].view(-1, 1, 1, 1)
 
             depth = (depth-depth_min)/(depth_max-depth_min)
 
@@ -130,14 +135,28 @@ class LiNerf(pl.LightningModule):
 
         t = uniform_sample(tn, tf, self.bins)
 
-        color, _, _ = self.render.forward(rays, t)
+        with torch.no_grad():
 
-        loss = (color_gt-color).square().mean()
+            _, _, w = self.render.forward(rays, t, sorted_t=True)
 
-        self.log("loss", loss)
+        #loss_l = (color_gt-color).square().mean()
 
-        return loss
+        #self.log("loss_l", loss_l)
+
+        # return loss_l
+
+        t_resamp = resample(w, t, 64, 256)
+
+        t_resamp = torch.cat((t, t_resamp), dim=1)
+
+        color, _, _ = self.render.forward(rays, t_resamp, sorted_t=False)
+
+        loss_h = (color_gt-color).square().mean()
+
+        self.log("loss_h", loss_h)
+
+        return loss_h #(loss_h + loss_l)/2
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return optimizer

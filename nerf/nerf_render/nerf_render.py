@@ -15,9 +15,9 @@ class NerfRender(jit.ScriptModule):
         self.max_batch = max_batch
 
     @jit.script_method
-    def forward(self, ray, t, data: Optional[Dict[str, torch.Tensor]] = None, sorted: bool = False):
+    def forward(self, ray, t, data: Optional[Dict[str, torch.Tensor]] = None, sorted_t: bool = True):
 
-        if not sorted:
+        if not sorted_t:
             t, _ = torch.sort(t, dim=-2)
 
         o, d = torch.split(ray.unsqueeze(-2), [3, 3], dim=-1)

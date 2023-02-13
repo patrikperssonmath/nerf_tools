@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--model_path", type=str, default="")
     parser.add_argument("--samples", type=int, default=256)
-    parser.add_argument("--threshold", type=int, default=10)
+    parser.add_argument("--threshold", type=int, default=20)
     parser.add_argument("--name", type=str, default="door")
 
     args = parser.parse_args()
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     li_nerf = LiNerf.load_from_checkpoint(
         args.model_path, **vars(args)).to(device)
 
-    visualize = NerfVisualize(device, li_nerf.render, [-5, 5, -5, 5, 15, 25],
+    visualize = NerfVisualize(device, li_nerf.render, [-5, 5, -5, 5, 5, 15],
                               args.samples, args.threshold, args.name)
 
     visualize.run()

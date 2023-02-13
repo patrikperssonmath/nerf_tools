@@ -1,1 +1,1 @@
-from .util import uniform_sample, generate_rays
+from .util import uniform_sample, generate_rays, resample
