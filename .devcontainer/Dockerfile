@@ -14,12 +14,11 @@ VOLUME /database
 VOLUME /workspace
 VOLUME /models
 
-ENV DEBIAN_FRONTEND=dialog
-
 # install packages
 RUN apt-get update && apt-get install -q -y --no-install-recommends \
     wget \
     git \
+    python3-tk \
     && rm -rf /var/lib/apt/lists/*
 
 # Create the user
@@ -31,4 +30,5 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME \
     && rm -rf /var/lib/apt/lists/*
 
+ENV DEBIAN_FRONTEND=dialog
 ENV GRPC_POLL_STRATEGY epoll1
