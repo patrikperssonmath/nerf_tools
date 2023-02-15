@@ -4,9 +4,26 @@ from torch import jit, nn
 from typing import Dict, Optional
 
 
+def integrate_ray(t, sigma, c):
+
+    dt = t[..., 1:, :] - t[..., 0:-1, :]
+
+    sdt = sigma*dt
+
+    Ti = torch.exp(-torch.cumsum(sdt, dim=-2))[..., 0:-1, :]
+
+    Ti = torch.cat((torch.ones_like(Ti[..., 0:1, :]), Ti), dim=-2)
+
+    alpha = (1.0 - torch.exp(-sdt))
+
+    wi = Ti*alpha
+
+    return (wi*c).sum(dim=-2), (wi*t[..., 1:, :]).sum(dim=-2), wi
+
+
 class NerfRender(jit.ScriptModule):
 
-    def __init__(self, pos_embedding, direction_embedding, nerf, max_batch = 2**14) -> None:
+    def __init__(self, pos_embedding, direction_embedding, nerf, max_batch=2**14) -> None:
         super().__init__()
 
         self.pose_embedding = pos_embedding
@@ -32,7 +49,7 @@ class NerfRender(jit.ScriptModule):
 
         sigma, color = self.nerf(x, d, data)
 
-        return self.integrate(t, sigma, color)
+        return integrate_ray(t, sigma, color)
 
     @jit.script_method
     def evaluate(self, x, d, data: Optional[Dict[str, torch.Tensor]] = None):
@@ -59,7 +76,7 @@ class NerfRender(jit.ScriptModule):
 
         if rem > 0:
 
-            sigma, color= self.evaluate_batch(
+            sigma, color = self.evaluate_batch(
                 v[N*self.max_batch:], data)
 
             color_list.append(color.cpu())
@@ -75,19 +92,3 @@ class NerfRender(jit.ScriptModule):
         d = self.direction_embedding(d)
 
         return self.nerf(x, d, data)
-
-    def integrate(self, t, sigma, c):
-
-        dt = t[..., 1:, :] - t[..., 0:-1, :]
-
-        sdt = sigma*dt
-
-        Ti = torch.exp(-torch.cumsum(sdt, dim=-2))[..., 0:-1, :]
-
-        Ti = torch.cat((torch.ones_like(Ti[..., 0:1, :]), Ti), dim=-2)
-
-        alpha = (1.0 - torch.exp(-sdt))
-
-        wi = Ti*alpha
-
-        return (wi*c).sum(dim=-2), (wi*t[..., 1:, :]).sum(dim=-2), wi

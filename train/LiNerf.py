@@ -38,7 +38,7 @@ class LiNerf(pl.LightningModule):
         parser.add_argument("--Lp", type=int, default=10)
         parser.add_argument("--Ld", type=int, default=4)
         parser.add_argument("--bins", type=int, default=64)
-        parser.add_argument("--max_render_batch_power", type=int, default=14)
+        parser.add_argument("--max_render_batch_power", type=int, default=12)
 
         parser.add_argument("--homogeneous_projection",
                             type=strtobool, default=False)
@@ -68,7 +68,7 @@ class LiNerf(pl.LightningModule):
 
             t = uniform_sample(tn, tf, self.bins)
 
-            #color, _ = self.render.forward(rays, t)
+            # color, _ = self.render.forward(rays, t)
 
             color, depth = self.render_frame(rays, t)
 
@@ -109,8 +109,17 @@ class LiNerf(pl.LightningModule):
 
         for i in range(N):
 
+            t_init = t[i*max_batch:(i+1)*max_batch]
+
+            _, _, w = self.render.forward(
+                rays[i*max_batch:(i+1)*max_batch], t_init)
+
+            t_resamp = resample(w, t_init, 128, 256)
+
+            t_resamp = torch.cat((t_init, t_resamp), dim=1)
+
             color, depth, _ = self.render.forward(
-                rays[i*max_batch:(i+1)*max_batch], t[i*max_batch:(i+1)*max_batch])
+                rays[i*max_batch:(i+1)*max_batch], t_resamp, sorted_t=False)
 
             color_list.append(color)
             depth_list.append(depth)
@@ -142,7 +151,7 @@ class LiNerf(pl.LightningModule):
             _, _, w = self.render.forward(rays, t, sorted_t=True)
 
         # sample according to w
-        t_resamp = resample(w, t, 64, 256)
+        t_resamp = resample(w, t, 128, 256)
 
         t_resamp = torch.cat((t, t_resamp), dim=1)
 
