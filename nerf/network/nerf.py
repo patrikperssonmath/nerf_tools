@@ -2,7 +2,7 @@ import torch
 
 from torch import jit, nn
 from typing import Dict, Optional
-
+from nerf.network.noise_layer import Noise
 
 class Nerf(nn.Module):
 
@@ -42,6 +42,7 @@ class Nerf(nn.Module):
 
         self.density = nn.Sequential(
             nn.Linear(256, 256+1),
+            Noise(1e0),
             nn.ReLU()
         )
 
