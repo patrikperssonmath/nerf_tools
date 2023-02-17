@@ -151,7 +151,7 @@ class LiNerf(pl.LightningModule):
             _, _, w = self.render.forward(rays, t, sorted_t=True)
 
         # sample according to w
-        t_resamp = resample(w, t, 128, 256)
+        t_resamp = resample(w, t, 128, 512)
 
         t_resamp = torch.cat((t, t_resamp), dim=1)
 
@@ -159,7 +159,7 @@ class LiNerf(pl.LightningModule):
 
         loss = (color_gt-color).square().mean()
 
-        self.log("loss_h", loss)
+        self.log("loss", loss)
 
         return loss
 
