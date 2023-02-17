@@ -39,7 +39,7 @@ class NerfRender(jit.ScriptModule):
 
         o, d = torch.split(ray.unsqueeze(-2), [3, 3], dim=-1)
 
-        x = o + t[..., 1:, :]*d
+        x = o + t[..., 0:-1, :]*d
 
         x = self.pose_embedding(x)
 
