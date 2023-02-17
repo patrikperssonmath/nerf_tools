@@ -20,8 +20,6 @@ def uniform_sample(tn, tf, N: int):
 
 def resample(w, t, N:int, R:int):
 
-    t = t[..., 1:, :]
-
     w = torch.nn.functional.interpolate(w.permute(0, 2, 1), R, mode="linear", align_corners=True).permute(0, 2, 1)
     t = torch.nn.functional.interpolate(t.permute(0, 2, 1), R, mode="linear", align_corners=True).permute(0, 2, 1)
 

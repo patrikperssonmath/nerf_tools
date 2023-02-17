@@ -4,9 +4,16 @@ from torch import jit, nn
 from typing import Dict, Optional
 
 
-def integrate_ray(t, sigma, c):
+def integrate_ray(t:torch.Tensor, sigma, c):
 
-    dt = t[..., 1:, :] - t[..., 0:-1, :]
+    dt = t[..., 1:, :] - t[..., :-1, :]
+
+    # In the original imp the last distance is infinity. 
+    # Is this really correct since the integration is between 
+    # tn and tf where tf is not necessarily inf
+    # practical consequence: at least the last color point will 
+    # receive a high weight even if the last sigma is only slightly positive.
+    dt = torch.cat((dt, 1e10*torch.ones_like(dt[..., 0:1, :])), dim=-2)
 
     sdt = sigma*dt
 
@@ -18,7 +25,7 @@ def integrate_ray(t, sigma, c):
 
     wi = Ti*alpha
 
-    return (wi*c).sum(dim=-2), (wi*t[..., 1:, :]).sum(dim=-2), wi
+    return (wi*c).sum(dim=-2), (wi*t).sum(dim=-2), wi
 
 
 class NerfRender(jit.ScriptModule):
@@ -39,7 +46,7 @@ class NerfRender(jit.ScriptModule):
 
         o, d = torch.split(ray.unsqueeze(-2), [3, 3], dim=-1)
 
-        x = o + t[..., 0:-1, :]*d
+        x = o + t*d
 
         x = self.pose_embedding(x)
 
