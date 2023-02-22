@@ -4,7 +4,7 @@ from torch import jit, nn
 from typing import Dict, Optional
 
 
-def integrate_ray(t: torch.Tensor, sigma, c, infinite:bool=False):
+def integrate_ray(t: torch.Tensor, sigma, c, infinite: bool = False, normalize: bool = False):
 
     dt = t[..., 1:, :] - t[..., :-1, :]
 
@@ -13,7 +13,6 @@ def integrate_ray(t: torch.Tensor, sigma, c, infinite:bool=False):
     # tn and tf where tf is not necessarily inf
     # practical consequence: at least the last color point will
     # receive a high weight even if the last sigma is only slightly positive.
-    # dt = torch.cat((dt, 1e10*torch.ones_like(dt[..., 0:1, :])), dim=-2)
 
     if infinite:
         dt = torch.cat((dt, 1e10*torch.ones_like(dt[..., 0:1, :])), dim=-2)
@@ -29,6 +28,14 @@ def integrate_ray(t: torch.Tensor, sigma, c, infinite:bool=False):
     alpha = (1.0 - torch.exp(-sdt))
 
     wi = Ti*alpha
+
+    if normalize:
+
+        C = wi.sum(dim=-2, keepdim=True)
+
+        C = C.where(C > 0, torch.ones_like(C))
+
+        wi = wi/C
 
     return (wi*c).sum(dim=-2), (wi*t).sum(dim=-2), wi
 
