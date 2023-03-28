@@ -39,6 +39,4 @@ class Embedding(nn.Module):
 
         x = torch.cat((sin_x, cos_x), dim=-1)
 
-        B, N, d, L = x.shape
-
-        return x.view(B, N, d*L)
+        return x.view(*x.shape[0:-2], -1)
