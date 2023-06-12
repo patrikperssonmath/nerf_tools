@@ -2,26 +2,31 @@
 import torch
 
 
-@torch.jit.script
+def uniform(a, b):
+
+    return a + (b-a)*torch.rand_like(a)
+
+
 def uniform_sample(tn, tf, N: int):
 
-    dt = (tf - tn)/N
+    dt = (tf - tn).unsqueeze(-1)/N
+    tn = tn.unsqueeze(-1)
 
-    dt = dt.unsqueeze(-1)
+    i = torch.arange(1, N+1, device=tn.device,
+                     dtype=tn.dtype).unsqueeze(0).unsqueeze(-1)
 
-    i = torch.arange(0, N, device=tf.device,
-                     dtype=tf.dtype).unsqueeze(0).unsqueeze(-1)
+    a = tn + (i-1)*dt
+    b = tn + i*dt
 
-    u = torch.rand_like(i)
+    return uniform(a, b)
 
-    t = tn.unsqueeze(-1) + dt*i + dt*u
 
-    return t
+def resample(w, t, N: int, R: int):
 
-def resample(w, t, N:int, R:int):
-
-    w = torch.nn.functional.interpolate(w.permute(0, 2, 1), R, mode="linear", align_corners=True).permute(0, 2, 1)
-    t = torch.nn.functional.interpolate(t.permute(0, 2, 1), R, mode="linear", align_corners=True).permute(0, 2, 1)
+    w = torch.nn.functional.interpolate(
+        w.permute(0, 2, 1), R, mode="linear", align_corners=True).permute(0, 2, 1)
+    t = torch.nn.functional.interpolate(
+        t.permute(0, 2, 1), R, mode="linear", align_corners=True).permute(0, 2, 1)
 
     w_cdf = torch.cumsum(w, dim=1)
 
@@ -31,11 +36,13 @@ def resample(w, t, N:int, R:int):
 
     B = w.shape[0]
 
-    u = torch.rand((B, N), device=w.device, dtype= w.dtype)
+    u = torch.rand((B, N), device=w.device, dtype=w.dtype)
 
-    idx = torch.searchsorted(w_cdf.squeeze(-1), u, right=True).unsqueeze(-1).clamp(0, R-1)
+    idx = torch.searchsorted(w_cdf.squeeze(-1), u,
+                             right=True).unsqueeze(-1).clamp(0, R-1)
 
     return torch.gather(t, 1, idx)
+
 
 def generate_grid(H, W, **kwargs):
 

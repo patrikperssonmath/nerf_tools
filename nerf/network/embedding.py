@@ -13,12 +13,6 @@ class Embedding(nn.Module):
 
         self.homogeneous_projection = homogeneous_projection
 
-        coeff = [2**i * math.pi for i in range(L)]
-
-        coeff = torch.tensor(coeff, dtype=torch.float32)
-
-        self.register_buffer("coeff", coeff)
-
     def forward(self, x):
 
         if self.homogeneous_projection:
@@ -27,16 +21,9 @@ class Embedding(nn.Module):
 
             x = x/torch.linalg.norm(x, dim=-1, keepdim=True)
 
-        x = x.unsqueeze(-1)
+        x = torch.cat([torch.cat([torch.sin((2**i) * math.pi*x),
+                                  torch.cos((2**i) * math.pi*x)],
+                                 dim=-1)
+                      for i in range(self.L)], dim=-1)
 
-        x = torch.repeat_interleave(x, self.L, dim=-1)
-
-        x = self.coeff*x
-
-        sin_x = torch.sin(x)
-
-        cos_x = torch.cos(x)
-
-        x = torch.cat((sin_x, cos_x), dim=-1)
-
-        return x.view(*x.shape[0:-2], -1)
+        return x

@@ -14,8 +14,8 @@ if __name__ == "__main__":
     LiNerf.add_model_specific_args(parser)
 
     parser.add_argument("--model_path", type=str, default="")
-    parser.add_argument("--samples", type=int, default=256)
-    parser.add_argument("--threshold", type=int, default=2)
+    parser.add_argument("--samples", type=int, default=512)
+    parser.add_argument("--threshold", type=int, default=10)
     parser.add_argument("--name", type=str, default="door")
 
     args = parser.parse_args()

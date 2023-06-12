@@ -71,32 +71,17 @@ class NerfRender(jit.ScriptModule):
         return integrate_ray(t, sigma, color)
 
     @jit.script_method
-    def evaluate(self, x, d, data: Optional[Dict[str, torch.Tensor]] = None):
+    def evaluate(self, x, d, data: Optional[Dict[str, torch.Tensor]] = None, max_chunk=2048):
 
         v = torch.cat((x, d), dim=-1)
-
-        B = v.shape[0]
-
-        N = B // self.max_batch
-
-        rem = B % N
 
         color_list = []
 
         sigma_list = []
 
-        for i in range(N):
+        for rays in torch.split(v, max_chunk):
 
-            sigma, color = self.evaluate_batch(
-                v[i*self.max_batch:(i+1)*self.max_batch], data)
-
-            color_list.append(color.cpu())
-            sigma_list.append(sigma.cpu())
-
-        if rem > 0:
-
-            sigma, color = self.evaluate_batch(
-                v[N*self.max_batch:], data)
+            sigma, color = self.evaluate_batch(rays, data)
 
             color_list.append(color.cpu())
             sigma_list.append(sigma.cpu())

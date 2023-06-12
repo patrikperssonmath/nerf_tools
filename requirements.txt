@@ -1,6 +1,6 @@
 pytest
 scikit-image
-pytorch-lightning
+pytorch-lightning==1.9.0
 tensorboard
 autopep8
 PyMCubes

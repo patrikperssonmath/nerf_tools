@@ -41,7 +41,7 @@ class LiNerf(pl.LightningModule):
         parser.add_argument("--max_render_batch_power", type=int, default=12)
 
         parser.add_argument("--homogeneous_projection",
-                            type=strtobool, default=False)
+                            type=strtobool, default=True)
 
         return parent_parser
 
@@ -68,8 +68,6 @@ class LiNerf(pl.LightningModule):
 
             t = uniform_sample(tn, tf, self.bins)
 
-            # color, _ = self.render.forward(rays, t)
-
             color, depth = self.render_frame(rays, t)
 
             color = color.reshape(B, H*W, -1).permute(0,
@@ -93,44 +91,33 @@ class LiNerf(pl.LightningModule):
             self.logger.experiment.add_image(
                 f"img_gt", make_grid(image, 4), batch_idx)
 
-    def render_frame(self, rays, t):
+    def render_frame(self, rays, t, max_chunck=2048):
 
-        B, _ = rays.shape
+        with torch.no_grad():
 
-        max_batch = 2**self.max_render_batch_power
+            color_list = []
+            depth_list = []
 
-        N = B // max_batch
+            rays = torch.split(rays, max_chunck)
+            t = torch.split(t, max_chunck)
 
-        rem = B % N
+            ray_zip = zip(rays, t)
 
-        color_list = []
+            for idx, (ray, t) in enumerate(ray_zip):
 
-        depth_list = []
+                _, _, w = self.render.forward(ray, t, sorted_t=False)
 
-        for i in range(N):
+                t_resamp = resample(w, t, 128, 256)
 
-            t_init = t[i*max_batch:(i+1)*max_batch]
+                t_resamp = torch.cat((t, t_resamp), dim=1)
 
-            _, _, w = self.render.forward(
-                rays[i*max_batch:(i+1)*max_batch], t_init)
+                color, depth, _ = self.render.forward(
+                    ray, t_resamp, sorted_t=False)
 
-            t_resamp = resample(w, t_init, 128, 256)
+                color_list.append(color)
+                depth_list.append(depth)
 
-            t_resamp = torch.cat((t_init, t_resamp), dim=1)
-
-            color, depth, _ = self.render.forward(
-                rays[i*max_batch:(i+1)*max_batch], t_resamp, sorted_t=False)
-
-            color_list.append(color)
-            depth_list.append(depth)
-
-        if rem > 0:
-
-            color, depth, _ = self.render.forward(
-                rays[N*max_batch:], t[N*max_batch:])
-
-            color_list.append(color)
-            depth_list.append(depth)
+                print(f"rendering ray batch {idx} of {len(rays)}", end="\r")
 
         return torch.cat(color_list, dim=0), torch.cat(depth_list, dim=0)
 
@@ -157,7 +144,7 @@ class LiNerf(pl.LightningModule):
 
         color, _, _ = self.render.forward(rays, t_resamp, sorted_t=False)
 
-        loss = (color_gt-color).square().mean()
+        loss = (color_gt-color).abs().mean()
 
         self.log("loss", loss)
 
