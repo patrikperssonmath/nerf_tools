@@ -17,14 +17,12 @@ def make_grid(image, output_nbr):
 
 
 class LiNerf(pl.LightningModule):
-    def __init__(self, lr, Lp, Ld, bins, max_render_batch_power, homogeneous_projection, **kwargs):
+    def __init__(self, lr, Lp, Ld, bins, homogeneous_projection, **kwargs):
         super().__init__()
 
         self.lr = lr
 
         self.bins = bins
-
-        self.max_render_batch_power = max_render_batch_power
 
         self.render = torch.jit.script(NerfRender(Embedding(Lp, homogeneous_projection),
                                                   Embedding(Ld),
@@ -38,7 +36,6 @@ class LiNerf(pl.LightningModule):
         parser.add_argument("--Lp", type=int, default=10)
         parser.add_argument("--Ld", type=int, default=4)
         parser.add_argument("--bins", type=int, default=64)
-        parser.add_argument("--max_render_batch_power", type=int, default=12)
 
         parser.add_argument("--homogeneous_projection",
                             type=strtobool, default=True)

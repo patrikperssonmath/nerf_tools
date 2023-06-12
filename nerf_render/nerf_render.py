@@ -42,13 +42,12 @@ def integrate_ray(t: torch.Tensor, sigma, c, infinite: bool = False, normalize: 
 
 class NerfRender(jit.ScriptModule):
 
-    def __init__(self, pos_embedding, direction_embedding, nerf, max_batch=2**14) -> None:
+    def __init__(self, pos_embedding, direction_embedding, nerf) -> None:
         super().__init__()
 
         self.pose_embedding = pos_embedding
         self.direction_embedding = direction_embedding
         self.nerf = nerf
-        self.max_batch = max_batch
 
     @jit.script_method
     def forward(self, ray, t, data: Optional[Dict[str, torch.Tensor]] = None, sorted_t: bool = True):
