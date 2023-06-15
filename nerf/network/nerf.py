@@ -4,6 +4,7 @@ from torch import jit, nn
 from typing import Dict, Optional
 from nerf.network.noise_layer import Noise
 
+
 class Nerf(nn.Module):
 
     def __init__(self, Lp, Ld, homogeneous_projection=False) -> None:
@@ -36,12 +37,12 @@ class Nerf(nn.Module):
             nn.ReLU(),
             nn.Linear(256, 256),
             nn.ReLU(),
-            nn.Linear(256, 256+1),
+            nn.Linear(256, 256),
             nn.ReLU()
         )
 
         self.density = nn.Sequential(
-            nn.Linear(256, 256+1),
+            nn.Linear(256, 1),
             Noise(1e0),
             nn.ReLU()
         )
@@ -66,7 +67,7 @@ class Nerf(nn.Module):
 
         F = self.dnn2(F)
 
-        sigma, F = torch.split(F, [1, 256], dim=-1)
+        sigma = self.density(F)
 
         F = torch.cat((F, d), dim=-1)
 

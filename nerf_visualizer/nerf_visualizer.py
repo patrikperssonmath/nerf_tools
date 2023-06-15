@@ -21,24 +21,18 @@ class NerfVisualizer:
 
             x_min, x_max, y_min, y_max, z_min, z_max = self.limits
 
-            x = np.linspace(x_min, x_max, self.nbr_samples+1)
-            y = np.linspace(y_min, y_max, self.nbr_samples+1)
-            z = np.linspace(z_min, z_max, self.nbr_samples+1)
+            x = np.linspace(x_min, x_max, self.nbr_samples)
+            y = np.linspace(y_min, y_max, self.nbr_samples)
+            z = np.linspace(z_min, z_max, self.nbr_samples)
 
             points = np.stack(np.meshgrid(x, y, z), -1)
-
-            directions = np.zeros_like(points)
 
             points = torch.tensor(points, device=self.device,
                                   dtype=torch.float32)
 
-            directions = torch.tensor(directions, device=self.device,
-                                      dtype=torch.float32)
-
             H, W, D, C = points.shape
 
-            sigma, _ = self.nerf_render.evaluate(points.view(H*W*D, 1, C),
-                                                 directions.view(H*W*D, 1, C), None)
+            sigma, _ = self.nerf_render.evaluate(points.view(H*W*D, 1, C), None)
 
             sigma = sigma.view(H, W, D)
 
@@ -47,6 +41,15 @@ class NerfVisualizer:
             print('fraction occupied', np.mean(sigma > self.threshold))
 
             vertices, triangles = mcubes.marching_cubes(sigma, self.threshold)
+
+            scale = np.array(
+                [x_max-x_min, y_max-y_min, z_max-z_min])/(self.nbr_samples-1)
+            scale = scale[None, :]
+
+            offset = np.array([x_min, y_min, z_min])
+            offset = offset[None, :]
+
+            vertices = scale*vertices + offset
 
             print('done', vertices.shape, triangles.shape)
 
