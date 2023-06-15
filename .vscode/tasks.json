@@ -20,8 +20,7 @@
                 "--homogeneous_projection=True",
                 "--batch=1024",
                 "--dataset_path=/database/nerf_dataset/golden_statue",
-                "--model_path=/workspace/lightning_logs/version_45/checkpoints/epoch=6-step=99241.ckpt",
-                "--detect_anomaly=False",
+                "--model_path=/workspace/lightning_logs/version_60/checkpoints/epoch=0-step=22053.ckpt",
                 "--accumulate_grad_batches=2"
             ]
         },
@@ -39,7 +38,7 @@
                 "nerf_visualize.py",
                 "--homogeneous_projection=True",
                 "--name=statue",
-                "--model_path=/workspace/lightning_logs/version_40/checkpoints/epoch=5-step=77188.ckpt"
+                "--model_path=/workspace/lightning_logs/version_53/checkpoints/epoch=10-step=187453.ckpt",
             ]
         }
     ]

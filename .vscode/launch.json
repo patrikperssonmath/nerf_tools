@@ -15,10 +15,10 @@
                 "--accelerator=gpu",
                 "--devices=1",
                 "--homogeneous_projection=True",
-                "--batch=4096",
+                "--batch=1024",
                 "--dataset_path=/database/nerf_dataset/golden_statue",
-                "--model_path=/workspace/lightning_logs/version_7/checkpoints/epoch=4-step=55135.ckpt"
-                //"--model_path=/workspace/lightning_logs/version_58/checkpoints/epoch=11-step=88212.ckpt"
+                "--model_path=/workspace/lightning_logs/version_69/checkpoints/epoch=1-step=44106.ckpt",
+                "--accumulate_grad_batches=2"
             ],
             "justMyCode": false
         },
@@ -31,7 +31,7 @@
             "env": {"PYTORCH_JIT":"0"},
             "args": [
                 "--homogeneous_projection=True",
-                "--model_path=/workspace/lightning_logs/version_3/checkpoints/epoch=5-step=44106.ckpt"
+                "--model_path=/workspace/lightning_logs/version_90/checkpoints/epoch=1-step=1800.ckpt"
             ],
             "justMyCode": false
         },
