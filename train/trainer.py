@@ -8,7 +8,7 @@ import torch
 
 
 class Trainer:
-    def __init__(self, trainer, model_path, dataset_path, batch, num_workers, **kwargs) -> None:
+    def __init__(self, trainer, model_path, dataset_path, batch, num_workers, width, height, **kwargs) -> None:
         self.model = LiNerf(**kwargs)
 
         if model_path:
@@ -21,6 +21,8 @@ class Trainer:
         self.num_workers = num_workers
 
         self.trainer = trainer
+        self.height = height
+        self.width = width
 
     @staticmethod
     def add_model_specific_args(parent_parser):
@@ -31,6 +33,8 @@ class Trainer:
         parser.add_argument("--dataset_path", type=str, default="")
         parser.add_argument("--batch", type=int, default=64)
         parser.add_argument("--num_workers", type=int, default=16)
+        parser.add_argument("--width", type=int, default=320)
+        parser.add_argument("--height", type=int, default=320)
 
         LiNerf.add_model_specific_args(parent_parser)
 
@@ -38,7 +42,7 @@ class Trainer:
 
     def load_dataset(self):
 
-        return RayLoader(ColmapSolution(self.dataset_path, 0)), ImageLoader(ColmapSolution(self.dataset_path, 0))
+        return RayLoader(ColmapSolution(self.dataset_path, 0, [self.height, self.width])), ImageLoader(ColmapSolution(self.dataset_path, 0, [self.height, self.width]))
 
     def run(self):
 

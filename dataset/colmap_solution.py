@@ -5,35 +5,30 @@ from dataset.sfm_solution import SFMSolution
 import numpy as np
 import os
 from PIL import Image
+from torch import nn
+import torch
 
 
 class ColmapSolution(SFMSolution):
 
-    def __init__(self, path_root, sol_nbr) -> None:
+    def __init__(self, path_root, sol_nbr, size = None) -> None:
         super().__init__()
 
         self.path_root = path_root
+        self.size = size
 
         self.cameras, self.images, self.points = read_model(
             os.path.join(path_root, "sparse", str(sol_nbr)))
 
-        self.grids = self.generate_grids()
+    def generate_grid(self, H, W):
 
-    def generate_grids(self):
+        x = np.linspace(0, W-1, W)
 
-        grids = {}
+        y = np.linspace(0, H-1, H)
 
-        for key, camera in self.cameras.items():
+        xv, yv = np.meshgrid(x, y)
 
-            x = np.linspace(0, camera.width-1, camera.width)
-
-            y = np.linspace(0, camera.height-1, camera.height)
-
-            xv, yv = np.meshgrid(x, y)
-
-            grids[key] = np.stack((xv, yv), axis=0)
-
-        return grids
+        return np.stack((xv, yv), axis=0)
 
     def unit_rescale(self):
         pass
@@ -73,15 +68,40 @@ class ColmapSolution(SFMSolution):
             tn = np.min(depth)/2
             tf = np.max(depth)*2
 
-            data = {"image": im, "T":T, "intrinsics":camera.params, "tn":tn, "tf":tf}
+            intrinsics = camera.params
 
-            for key,val in data.items():
+            if self.size is not None:
+
+                im, intrinsics = self.rescale(im, intrinsics)
+
+            data = {"image": im, "T": T,
+                    "intrinsics": intrinsics, "tn": tn, "tf": tf}
+
+            for key, val in data.items():
 
                 data[key] = val.astype(np.float32)
 
             images.append(data)
 
         return images
+
+    def rescale(self, im, intrinsics):
+
+        fx, fy, cx, cy = intrinsics
+
+        C, H, W = im.shape
+
+        im = nn.functional.interpolate(
+            torch.tensor(im).unsqueeze(0), self.size, align_corners=True, mode="bilinear").squeeze(0).numpy()
+
+        C, Ho, Wo = im.shape
+
+        ax = Wo/W
+        ay = Ho/H
+
+        intrinsics = np.array([ax*fx, ay*fy, ax*cx, ay*cy])
+
+        return im, intrinsics
 
     def calculate_rays(self):
 
@@ -103,7 +123,13 @@ class ColmapSolution(SFMSolution):
 
             camera = self.cameras[image.camera_id]
 
-            params = np.expand_dims(camera.params, -1)
+            intrinsics = camera.params
+
+            if self.size is not None:
+
+                im, intrinsics = self.rescale(im, intrinsics)
+
+            params = np.expand_dims(intrinsics, -1)
             params = np.expand_dims(params, -1)
 
             focal, principal = np.split(params, 2)
@@ -114,7 +140,9 @@ class ColmapSolution(SFMSolution):
 
             o = -R.transpose()@t
 
-            d = (self.grids[image.camera_id]-principal)/focal
+            grid = self.generate_grid(im.shape[1], im.shape[2])
+
+            d = (grid-principal)/focal
 
             d = np.concatenate((d, np.ones_like(d[0:1])), axis=0)
 
@@ -135,7 +163,7 @@ class ColmapSolution(SFMSolution):
 
             point3d = R @ point3d + np.expand_dims(t, -1)
 
-            depth = point3d[2, :]
+            depth = np.linalg.norm(point3d, axis=0)  # point3d[2, :]
 
             tn = np.min(depth)/2
             tf = np.max(depth)*2
