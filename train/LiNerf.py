@@ -28,6 +28,10 @@ class LiNerf(pl.LightningModule):
                                                   Embedding(Ld),
                                                   Nerf(Lp, Ld, homogeneous_projection)))
 
+        self.render_low_res = torch.jit.script(NerfRender(Embedding(Lp, homogeneous_projection),
+                                                          Embedding(Ld),
+                                                          Nerf(Lp, Ld, homogeneous_projection)))
+
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = parent_parser.add_argument_group("Nerf")
@@ -63,9 +67,7 @@ class LiNerf(pl.LightningModule):
             tn = tn.view(B, -1, H*W).permute(0, 2, 1).reshape(B*H*W, -1)
             tf = tf.view(B, -1, H*W).permute(0, 2, 1).reshape(B*H*W, -1)
 
-            t = uniform_sample(tn, tf, self.bins)
-
-            color, depth = self.render_frame(rays, t)
+            color, depth = self.render_frame(rays, tn, tf)
 
             color = color.reshape(B, H*W, -1).permute(0,
                                                       2, 1).view(B, -1, H, W)
@@ -73,7 +75,7 @@ class LiNerf(pl.LightningModule):
                                                       2, 1).view(B, -1, H, W)
 
             self.logger.experiment.add_image(
-                f"img_rendered", make_grid(color, 4), batch_idx)
+                f"img_rendered", make_grid(color, 4), self.global_step + batch_idx)
 
             depth_max = torch.max(depth.view(B, -1, H*W),
                                   dim=-1, keepdim=True)[0].view(-1, 1, 1, 1)
@@ -83,12 +85,12 @@ class LiNerf(pl.LightningModule):
             depth = (depth-depth_min)/(depth_max-depth_min)
 
             self.logger.experiment.add_image(
-                f"depth_rendered", make_grid(depth, 4), batch_idx)
+                f"depth_rendered", make_grid(depth, 4), self.global_step + batch_idx)
 
             self.logger.experiment.add_image(
-                f"img_gt", make_grid(image, 4), batch_idx)
+                f"img_gt", make_grid(image, 4), self.global_step + batch_idx)
 
-    def render_frame(self, rays, t, max_chunck=2048):
+    def render_frame(self, rays, tn, tf, max_chunck=2048):
 
         with torch.no_grad():
 
@@ -96,15 +98,18 @@ class LiNerf(pl.LightningModule):
             depth_list = []
 
             rays = torch.split(rays, max_chunck)
-            t = torch.split(t, max_chunck)
+            tn = torch.split(tn, max_chunck)
+            tf = torch.split(tf, max_chunck)
 
-            ray_zip = zip(rays, t)
+            ray_zip = zip(rays, tn, tf)
 
-            for idx, (ray, t) in enumerate(ray_zip):
+            for idx, (ray, tn, tf) in enumerate(ray_zip):
 
-                _, _, w = self.render.forward(ray, t, sorted_t=False)
+                t = uniform_sample(tn, tf, self.bins)
 
-                t_resamp = resample(w, t, 128, 256)
+                _, _, w = self.render_low_res.forward(ray, t, sorted_t=False)
+
+                t_resamp = resample(w, t, 128, 512)
 
                 t_resamp = torch.cat((t, t_resamp), dim=1)
 
@@ -130,18 +135,20 @@ class LiNerf(pl.LightningModule):
 
         # do one round to find out important sampling regions
 
+        color, _, w = self.render_low_res.forward(rays, t, sorted_t=False)
+
+        loss = (color_gt-color).abs().mean()
+
         with torch.no_grad():
 
-            _, _, w = self.render.forward(rays, t, sorted_t=True)
-
-        # sample according to w
-        t_resamp = resample(w, t, 128, 512)
+            # sample according to w
+            t_resamp = resample(w, t, 128, 512)
 
         t_resamp = torch.cat((t, t_resamp), dim=1)
 
         color, _, _ = self.render.forward(rays, t_resamp, sorted_t=False)
 
-        loss = (color_gt-color).abs().mean()
+        loss += (color_gt-color).abs().mean()
 
         self.log("loss", loss)
 

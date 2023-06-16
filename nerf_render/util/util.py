@@ -23,8 +23,67 @@ def uniform_sample(tn, tf, N: int):
 
 def resample(w, t, N: int, R: int):
 
+    t1 = t[:, :-1]
+    t2 = t[:, 1:]
+
+    w1 = w[:, :-1]
+    w2 = w[:, 1:]
+
+    delta_t = (t2-t1)
+
+    k = (w2-w1)/delta_t.where(delta_t > 0, torch.ones_like(delta_t))
+    m = w1 - k*t1
+
+    c = 0.5*k*delta_t**2 + m*delta_t
+
+    # can become negative due to numerical errors. Must be positive.
+    c = c.abs()
+
+    c = torch.cat((torch.zeros_like(c[:, 0:1]), c), dim=1)
+
+    w_cdf = torch.cumsum(c, dim=1)
+
+    C = w_cdf[:, -1:]
+
+    w_cdf = w_cdf / C.where(C > 0, torch.ones_like(C))
+
+    B, S = w_cdf.shape[0:2]
+
+    u = torch.rand((B, N), device=w.device, dtype=w.dtype)
+
+    idx = torch.searchsorted(w_cdf.squeeze(-1), u,
+                             right=True).unsqueeze(-1).clamp(0, S-1)
+
+    u = u.unsqueeze(-1)
+
+    w1 = torch.gather(w_cdf, 1, (idx - 1).clamp(0, S-1))
+    t1 = torch.gather(t, 1, (idx - 1).clamp(0, S-1))
+
+    w2 = torch.gather(w_cdf, 1, idx)
+    t2 = torch.gather(t, 1, idx)
+
+    # k = ((w2-w1)/(t2-t1))
+    # m = w1 - k*t1
+
+    # w = k*tu + m
+
+    # tu = (w-m)/k
+
+    delta_t = (t2-t1)
+    delta_t = delta_t.where(delta_t > 0, torch.ones_like(delta_t))
+
+    k = (w2-w1)/delta_t
+    m = w1 - k*t1
+    tu = (u-m)/k.where(k > 0, torch.ones_like(delta_t))
+
+    return tu.clamp(t1, t2)
+
+
+def resample_old(w, t, N: int, R: int):
+
     w = torch.nn.functional.interpolate(
         w.permute(0, 2, 1), R, mode="linear", align_corners=True).permute(0, 2, 1)
+
     t = torch.nn.functional.interpolate(
         t.permute(0, 2, 1), R, mode="linear", align_corners=True).permute(0, 2, 1)
 
@@ -34,14 +93,36 @@ def resample(w, t, N: int, R: int):
 
     w_cdf = w_cdf / C.where(C > 0, torch.ones_like(C))
 
-    B = w.shape[0]
+    B, S = w.shape[0:2]
 
     u = torch.rand((B, N), device=w.device, dtype=w.dtype)
 
     idx = torch.searchsorted(w_cdf.squeeze(-1), u,
-                             right=True).unsqueeze(-1).clamp(0, R-1)
+                             right=True).unsqueeze(-1).clamp(0, S-1)
 
-    return torch.gather(t, 1, idx)
+    u = u.unsqueeze(-1)
+
+    w1 = torch.gather(w_cdf, 1, (idx - 1).clamp(0, S-1))
+    t1 = torch.gather(t, 1, (idx - 1).clamp(0, S-1))
+
+    w2 = torch.gather(w_cdf, 1, idx)
+    t2 = torch.gather(t, 1, idx)
+
+    # k = ((w2-w1)/(t2-t1))
+    # m = w1 - k*t1
+
+    # w = k*tu + m
+
+    # tu = (w-m)/k
+
+    delta_t = (t2-t1)
+    delta_t = delta_t.where(delta_t > 0, torch.ones_like(delta_t))
+
+    k = (w2-w1)/delta_t
+    m = w1 - k*t1
+    tu = (u-m)/k.where(k > 0, torch.ones_like(delta_t))
+
+    return tu.clamp(t1, t2)
 
 
 def generate_grid(H, W, **kwargs):
