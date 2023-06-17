@@ -109,7 +109,7 @@ class LiNerf(pl.LightningModule):
 
                 _, _, w = self.render_low_res.forward(ray, t, sorted_t=False)
 
-                t_resamp = resample(w, t, 128, 512)
+                t_resamp = resample(w, t, 128)
 
                 t_resamp = torch.cat((t, t_resamp), dim=1)
 
@@ -142,7 +142,7 @@ class LiNerf(pl.LightningModule):
         with torch.no_grad():
 
             # sample according to w
-            t_resamp = resample(w, t, 128, 512)
+            t_resamp = resample(w, t, 128)
 
         t_resamp = torch.cat((t, t_resamp), dim=1)
 

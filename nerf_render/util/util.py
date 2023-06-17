@@ -21,7 +21,7 @@ def uniform_sample(tn, tf, N: int):
     return uniform(a, b)
 
 
-def resample(w, t, N: int, R: int):
+def resample(w, t, N: int):
 
     t1 = t[:, :-1]
     t2 = t[:, 1:]
