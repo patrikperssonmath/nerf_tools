@@ -1,5 +1,5 @@
 from train.LiNerf import LiNerf
-from dataset.colmap_solution import ColmapSolution
+from dataset.colmap_solution2 import ColmapSolution
 from dataset.ray_loader import RayLoader
 from dataset.image_loader import ImageLoader
 

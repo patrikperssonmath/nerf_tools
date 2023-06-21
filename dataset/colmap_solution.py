@@ -63,7 +63,7 @@ class ColmapSolution(SFMSolution):
 
             point3d = R @ point3d + np.expand_dims(t, -1)
 
-            depth = point3d[2, :]
+            depth = np.linalg.norm(point3d[0:3], axis=0)
 
             tn = np.min(depth)/2
             tf = np.max(depth)*2
