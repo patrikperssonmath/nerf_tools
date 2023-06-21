@@ -16,8 +16,8 @@
                 "--devices=1",
                 "--homogeneous_projection=True",
                 "--batch=1024",
-                "--dataset_path=/database/nerf_dataset/golden_statue",
-                "--model_path=/workspace/lightning_logs/version_69/checkpoints/epoch=1-step=44106.ckpt",
+                "--dataset_path=/database/nerf_dataset/gate",
+                //"--model_path=/workspace/lightning_logs/version_136/checkpoints/epoch=15-step=21600.ckpt",
                 "--accumulate_grad_batches=2"
             ],
             "justMyCode": false
@@ -31,7 +31,7 @@
             "env": {"PYTORCH_JIT":"0"},
             "args": [
                 "--homogeneous_projection=True",
-                "--model_path=/workspace/lightning_logs/version_90/checkpoints/epoch=1-step=1800.ckpt"
+                "--model_path=/workspace/lightning_logs/version_1/checkpoints/epoch=11-step=8400.ckpt"
             ],
             "justMyCode": false
         },
