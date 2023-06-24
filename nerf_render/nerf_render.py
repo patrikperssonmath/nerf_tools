@@ -50,7 +50,7 @@ class NerfRender(jit.ScriptModule):
         self.nerf = nerf
 
     @jit.script_method
-    def forward(self, ray, t, data: Optional[Dict[str, torch.Tensor]] = None, sorted_t: bool = True):
+    def forward(self, ray, t, sorted_t: bool = True):
 
         if not sorted_t:
             t, _ = torch.sort(t, dim=-2)
@@ -65,12 +65,12 @@ class NerfRender(jit.ScriptModule):
 
         d = self.direction_embedding(d).expand(-1, N, -1)
 
-        sigma, color = self.nerf(x, d, data)
+        sigma, color = self.nerf(x, d)
 
         return integrate_ray(t, sigma, color)
 
     @jit.script_method
-    def evaluate(self, x, data: Optional[Dict[str, torch.Tensor]] = None, max_chunk=2048):
+    def evaluate(self, x, max_chunk=2048):
 
         color_list = []
 
@@ -78,18 +78,18 @@ class NerfRender(jit.ScriptModule):
 
         for pos in torch.split(x, max_chunk):
 
-            sigma, color = self.evaluate_density(pos, data)
+            sigma, color = self.evaluate_density(pos)
 
             color_list.append(color.cpu())
             sigma_list.append(sigma.cpu())
 
         return torch.cat(sigma_list, dim=0), torch.cat(color_list, dim=0)
 
-    def evaluate_density(self, x, data: Optional[Dict[str, torch.Tensor]] = None):
+    def evaluate_density(self, x):
 
         d = torch.zeros_like(x)
 
         x = self.pose_embedding(x)
         d = self.direction_embedding(d)
 
-        return self.nerf(x, d, data)
+        return self.nerf(x, d)

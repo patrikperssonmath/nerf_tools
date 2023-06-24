@@ -54,12 +54,7 @@ class Nerf(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, x, d, data: Optional[Dict[str, torch.Tensor]] = None):
-
-        B, N, _ = x.shape
-
-        x = x.reshape(B*N, -1)
-        d = d.reshape(B*N, -1)
+    def forward(self, x, d):
 
         F = self.dnn1(x)
 
@@ -73,4 +68,4 @@ class Nerf(nn.Module):
 
         color = self.color(F)
 
-        return sigma.view(B, N, -1), color.view(B, N, -1)
+        return sigma, color
