@@ -1,6 +1,32 @@
 
 import torch
 
+def ray_to_points(ray, t):
+
+    o, d = torch.split(ray.unsqueeze(-2), [3, 3], dim=-1)
+
+    x = o + t*d
+
+    return x, d
+
+def where(mask, x, y):
+
+    mask = mask.float()
+
+    return mask*x + (1.0-mask)*y
+
+
+def linspace(tn, tf, N):
+
+    dt = (tf - tn).unsqueeze(-1)
+    tn = tn.unsqueeze(1)
+
+    i = torch.linspace(0, 1, N,
+                       device=tn.device,
+                       dtype=tn.dtype).unsqueeze(0).unsqueeze(-1)
+
+    return tn + dt*i
+
 
 def uniform(a, b):
 
