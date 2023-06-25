@@ -3,6 +3,7 @@ import torch
 from torch import nn
 from nerf.unisurf import NerfDensity
 from nerf.unisurf import NerfColor
+from nerf.util.util import ray_to_points
 
 
 class DensityActivation(nn.Module):
@@ -30,7 +31,8 @@ def integrate_ray(t, sigma, color):
     alpha_log = torch.cat(
         (torch.ones_like(sigma[..., 0:1, :]), 1.0-sigma+1e-6), dim=-2).log()
 
-    wi = torch.exp((sigma+1e-6).log() + torch.cumsum(alpha_log, dim=-2)[..., :-1, :])
+    wi = torch.exp((sigma+1e-6).log() +
+                   torch.cumsum(alpha_log, dim=-2)[..., :-1, :])
 
     return (wi*color).sum(dim=-2), (wi*t).sum(dim=-2), wi
 
@@ -46,19 +48,21 @@ class NerfRender(nn.Module):
 
         self.density_activation = DensityActivation()
 
-    def forward(self, ray, t):
+    def forward(self, ray, t, volumetric=True):
 
         t, _ = torch.sort(t, dim=-2)
 
-        o, d = torch.split(ray.unsqueeze(-2), [3, 3], dim=-1)
-
-        x = o + t*d
+        x, d = ray_to_points(ray, t)
 
         sigma, h, n = self.evaluate_density_gradient(x)
 
         color = self.evaluate_color(x, n, h, d)
 
-        return integrate_ray(t, sigma, color)
+        if volumetric:
+
+            return integrate_ray(t, sigma, color)
+
+        return color.squeeze(-2), t.squeeze(-2), None
 
     def evaluate_density_gradient(self, p):
 
@@ -101,9 +105,7 @@ class NerfRender(nn.Module):
 
     def evaluate_ray_density(self, ray, t):
 
-        o, d = torch.split(ray.unsqueeze(-2), [3, 3], dim=-1)
-
-        x = o + t*d
+        x, _ = ray_to_points(ray, t)
 
         return self.evaluate_density(x)
 
