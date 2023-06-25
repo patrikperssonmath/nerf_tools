@@ -18,7 +18,7 @@ class NerfDensity(nn.Module):
             pos_dim += 1
 
         self.dnn1 = nn.Sequential(
-            nn.Linear(2*pos_dim*Lp, 256),
+            nn.Linear(2*pos_dim*Lp + pos_dim, 256),
             nn.ReLU(),
             nn.Linear(256, 256),
             nn.ReLU(),
@@ -31,7 +31,7 @@ class NerfDensity(nn.Module):
         )
 
         self.dnn2 = nn.Sequential(
-            nn.Linear(2*pos_dim*Lp+256, 256),
+            nn.Linear(2*pos_dim*Lp + pos_dim+256, 256),
             nn.ReLU(),
             nn.Linear(256, 256),
             nn.ReLU(),

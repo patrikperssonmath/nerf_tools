@@ -12,7 +12,7 @@ class NerfColor(nn.Module):
         self.embedding = Embedding(Ld)
 
         self.color = nn.Sequential(
-            nn.Linear(256+2*3*Ld, 128),
+            nn.Linear(256+2*3*Ld+3, 128),
             nn.ReLU(),
             nn.Linear(128, 3),
             nn.Sigmoid()
