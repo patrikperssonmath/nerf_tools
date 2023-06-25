@@ -17,22 +17,11 @@ class DensityActivation(nn.Module):
         return self.sigmoid(-10.0*x)
 
 
-def integrate_ray_old(t, sigma, color):
+def integrate_ray(t, sigma, color):
 
     alpha = torch.cat((torch.ones_like(sigma[..., 0:1, :]), 1.0-sigma), dim=-2)
 
     wi = sigma*torch.cumprod(alpha, dim=-2)[..., :-1, :]
-
-    return (wi*color).sum(dim=-2), (wi*t).sum(dim=-2), wi
-
-
-def integrate_ray(t, sigma, color):
-
-    alpha_log = torch.cat(
-        (torch.ones_like(sigma[..., 0:1, :]), 1.0-sigma+1e-6), dim=-2).log()
-
-    wi = torch.exp((sigma+1e-6).log() +
-                   torch.cumsum(alpha_log, dim=-2)[..., :-1, :])
 
     return (wi*color).sum(dim=-2), (wi*t).sum(dim=-2), wi
 
