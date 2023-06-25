@@ -1,16 +1,18 @@
 import torch
 
-from torch import jit, nn
-from typing import Dict, Optional
-from nerf.network.noise_layer import Noise
+from torch import nn
+from nerf.util.noise_layer import Noise
+from nerf.util.embedding import Embedding
 
 
-class Nerf(nn.Module):
+class NerfDensity(nn.Module):
 
-    def __init__(self, Lp, Ld, homogeneous_projection=False) -> None:
+    def __init__(self, Lp, homogeneous_projection=False) -> None:
         super().__init__()
 
         pos_dim = 3
+
+        self.embedding = Embedding(Lp, homogeneous_projection)
 
         if homogeneous_projection:
             pos_dim += 1
@@ -47,14 +49,9 @@ class Nerf(nn.Module):
             nn.ReLU()
         )
 
-        self.color = nn.Sequential(
-            nn.Linear(256+2*3*Ld, 128),
-            nn.ReLU(),
-            nn.Linear(128, 3),
-            nn.Sigmoid()
-        )
+    def forward(self, x):
 
-    def forward(self, x, d):
+        x = self.embedding(x)
 
         F = self.dnn1(x)
 
@@ -64,8 +61,4 @@ class Nerf(nn.Module):
 
         sigma = self.density(F)
 
-        F = torch.cat((F, d), dim=-1)
-
-        color = self.color(F)
-
-        return sigma, color
+        return sigma, F

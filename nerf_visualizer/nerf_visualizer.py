@@ -1,13 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
-from nerf_render import NerfRender
 import mcubes
 import os
 
 
 class NerfVisualizer:
-    def __init__(self, device, nerf_render: NerfRender, limits, nbr_samples, threshold, name="") -> None:
+    def __init__(self, device, nerf_render, limits, nbr_samples, threshold, name="") -> None:
         self.device = device
         self.nerf_render = nerf_render
         self.limits = limits
@@ -32,7 +31,7 @@ class NerfVisualizer:
 
             H, W, D, C = points.shape
 
-            sigma, _ = self.nerf_render.evaluate(points.view(H*W*D, 1, C), None)
+            sigma = self.nerf_render.evaluate(points.view(H*W*D, 1, C))
 
             sigma = sigma.view(H, W, D)
 

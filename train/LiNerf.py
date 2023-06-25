@@ -2,10 +2,9 @@
 import torch
 import pytorch_lightning as pl
 
-from nerf_render import NerfRender
-from nerf.network import Embedding
-from nerf.network import Nerf
-from nerf_render.util import uniform_sample, generate_rays, resample
+from nerf.nerf.nerf import Nerf
+
+from nerf.util.util import uniform_sample, generate_rays, resample
 from distutils.util import strtobool
 import torchvision
 
@@ -17,32 +16,20 @@ def make_grid(image, output_nbr):
 
 
 class LiNerf(pl.LightningModule):
-    def __init__(self, lr, Lp, Ld, bins, homogeneous_projection, **kwargs):
+    def __init__(self, lr, **kwargs):
         super().__init__()
 
         self.lr = lr
 
-        self.bins = bins
-
-        self.render = torch.jit.script(NerfRender(Embedding(Lp, homogeneous_projection),
-                                                  Embedding(Ld),
-                                                  Nerf(Lp, Ld, homogeneous_projection)))
-
-        self.render_low_res = torch.jit.script(NerfRender(Embedding(Lp, homogeneous_projection),
-                                                          Embedding(Ld),
-                                                          Nerf(Lp, Ld, homogeneous_projection)))
+        self.nerf = Nerf(**kwargs)
 
     @staticmethod
     def add_model_specific_args(parent_parser):
-        parser = parent_parser.add_argument_group("Nerf")
+        parser = parent_parser.add_argument_group("LiNerf")
 
         parser.add_argument("--lr", type=float, default=1e-3)
-        parser.add_argument("--Lp", type=int, default=10)
-        parser.add_argument("--Ld", type=int, default=4)
-        parser.add_argument("--bins", type=int, default=64)
 
-        parser.add_argument("--homogeneous_projection",
-                            type=strtobool, default=True)
+        Nerf.add_model_specific_args(parent_parser)
 
         return parent_parser
 
@@ -101,23 +88,12 @@ class LiNerf(pl.LightningModule):
             tn = torch.split(tn, max_chunck)
             tf = torch.split(tf, max_chunck)
 
-            ray_zip = zip(rays, tn, tf)
+            for idx, (ray, tn, tf) in enumerate(zip(rays, tn, tf)):
 
-            for idx, (ray, tn, tf) in enumerate(ray_zip):
+                result = self.nerf.forward(ray, tn, tf)
 
-                t = uniform_sample(tn, tf, self.bins)
-
-                _, _, w = self.render_low_res.forward(ray, t, sorted_t=False)
-
-                t_resamp = resample(w, t, 128)
-
-                t_resamp = torch.cat((t, t_resamp), dim=1)
-
-                color, depth, _ = self.render.forward(
-                    ray, t_resamp, sorted_t=False)
-
-                color_list.append(color)
-                depth_list.append(depth)
+                color_list.append(result["color"])
+                depth_list.append(result["depth"])
 
                 print(f"rendering ray batch {idx} of {len(rays)}", end="\r")
 
@@ -127,28 +103,14 @@ class LiNerf(pl.LightningModule):
         # training_step defines the train loop.
 
         color_gt = batch["rgb"]
-        rays = batch["ray"]
-        tn = batch["tn"]
-        tf = batch["tf"]
 
-        t = uniform_sample(tn, tf, self.bins)
+        result = self.nerf.forward(batch["ray"], batch["tn"], batch["tf"])
 
-        # do one round to find out important sampling regions
+        loss = (color_gt-result["color_low_res"]).abs().mean()
 
-        color, _, w = self.render_low_res.forward(rays, t, sorted_t=False)
+        loss += (color_gt-result["color"]).abs().mean()
 
-        loss = (color_gt-color).abs().mean()
-
-        with torch.no_grad():
-
-            # sample according to w
-            t_resamp = resample(w, t, 128)
-
-        t_resamp = torch.cat((t, t_resamp), dim=1)
-
-        color, _, _ = self.render.forward(rays, t_resamp, sorted_t=False)
-
-        loss += (color_gt-color).abs().mean()
+        loss /= 2.0
 
         self.log("loss", loss)
 

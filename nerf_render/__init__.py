@@ -1,1 +1,0 @@
-from .nerf_render import NerfRender
