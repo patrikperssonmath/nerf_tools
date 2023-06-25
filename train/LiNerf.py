@@ -20,8 +20,16 @@ class LiNerf(pl.LightningModule):
         super().__init__()
 
         self.lr = lr
-
         self.nerf = Nerf(**kwargs)
+
+        """
+        nerf = Nerf(**kwargs).to("cuda:0")
+        ray = torch.randn((1024, 6), device="cuda:0", dtype=torch.float32)
+        tn = torch.rand((1024, 1), device="cuda:0", dtype=torch.float32)
+        tf = tn+torch.rand((1024, 1), device="cuda:0", dtype=torch.float32)
+
+        self.nerf = torch.jit.trace(nerf, (ray, tn, tf))
+        """
 
     @staticmethod
     def add_model_specific_args(parent_parser):
@@ -77,23 +85,23 @@ class LiNerf(pl.LightningModule):
             self.logger.experiment.add_image(
                 f"img_gt", make_grid(image, 4), self.global_step + batch_idx)
 
-    def render_frame(self, rays, tn, tf, max_chunck=2048):
+    def render_frame(self, rays, tn, tf, max_chunk=2048):
 
         with torch.no_grad():
 
             color_list = []
             depth_list = []
 
-            rays = torch.split(rays, max_chunck)
-            tn = torch.split(tn, max_chunck)
-            tf = torch.split(tf, max_chunck)
+            rays = torch.split(rays, max_chunk)
+            tn = torch.split(tn, max_chunk)
+            tf = torch.split(tf, max_chunk)
 
             for idx, (ray, tn, tf) in enumerate(zip(rays, tn, tf)):
 
-                result = self.nerf.forward(ray, tn, tf)
+                result = self.nerf(ray, tn, tf)
 
-                color_list.append(result["color"])
-                depth_list.append(result["depth"])
+                color_list.append(result[0])
+                depth_list.append(result[1])
 
                 print(f"rendering ray batch {idx} of {len(rays)}", end="\r")
 
@@ -104,11 +112,11 @@ class LiNerf(pl.LightningModule):
 
         color_gt = batch["rgb"]
 
-        result = self.nerf.forward(batch["ray"], batch["tn"], batch["tf"])
+        result = self.nerf(batch["ray"], batch["tn"], batch["tf"])
 
-        loss = (color_gt-result["color_low_res"]).abs().mean()
+        loss = (color_gt-result[-1]).abs().mean()
 
-        loss += (color_gt-result["color"]).abs().mean()
+        loss += (color_gt-result[0]).abs().mean()
 
         loss /= 2.0
 

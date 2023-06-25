@@ -4,6 +4,7 @@ from distutils.util import strtobool
 from nerf.nerf.nerf_render import NerfRender
 from nerf.util.util import uniform_sample, resample
 import torch
+from collections import namedtuple
 
 
 class Nerf(nn.Module):
@@ -49,4 +50,4 @@ class Nerf(nn.Module):
 
         color_high_res, depth, _ = self.render.forward(rays, t_resamp)
 
-        return {"color": color_high_res, "depth": depth, "color_low_res": color_low_res}
+        return (color_high_res, depth, color_low_res)

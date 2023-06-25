@@ -26,7 +26,7 @@ if __name__ == "__main__":
         args.model_path, **vars(args)).to(device)
 
     visualize = NerfVisualizer(device, li_nerf.nerf.render,
-                               [-0.5, 0.5, -0.5, 0.5, -0.5, 0.5],
+                               [-0.125, 0.125, -0.125, 0.125, -0.125, 0.125],
                                args.samples, args.threshold, args.name)
 
     visualize.run()
