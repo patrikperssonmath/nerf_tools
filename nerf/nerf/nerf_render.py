@@ -2,6 +2,7 @@ import torch
 from torch import nn
 
 from nerf.nerf import NerfColor, NerfDensity
+from nerf.util.util import ray_to_points
 
 
 def integrate_ray(t: torch.Tensor, sigma, c, infinite: bool = False, normalize: bool = False):
@@ -53,9 +54,7 @@ class NerfRender(nn.Module):
 
         t, _ = torch.sort(t, dim=-2)
 
-        o, d = torch.split(ray.unsqueeze(-2), [3, 3], dim=-1)
-
-        x = o + t*d
+        x, d = ray_to_points(ray, t)
 
         sigma, F = self.nerf_density(x)
 
