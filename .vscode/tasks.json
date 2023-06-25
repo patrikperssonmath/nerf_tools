@@ -12,20 +12,20 @@
                 "reveal": "always",
                 "panel": "shared"
             },
-            "options": {"env": {"PYTORCH_JIT":"1"}},
+            //"options": {"env": {"PYTORCH_JIT":"1"}},
             "args": [
                 "nerf.py",
                 "--accelerator=gpu",
                 "--devices=1",
                 "--homogeneous_projection=True",
                 "--batch=1024",
-                "--dataset_path=/database/nerf_dataset/golden_statue",
-                "--model_path=/workspace/lightning_logs/version_60/checkpoints/epoch=0-step=22053.ckpt",
+                "--dataset_path=/database/nerf_dataset/gate",
+                //"--model_path=/workspace/lightning_logs/version_24/checkpoints/epoch=13-step=22950.ckpt",
                 "--accumulate_grad_batches=2"
             ]
         },
         {
-            "label": "nerf_vis",
+            "label": "nerf viz",
             "type": "shell",
             "command": "python",
             "presentation": {
@@ -33,12 +33,62 @@
                 "reveal": "always",
                 "panel": "shared"
             },
-            "options": {"env": {"PYTORCH_JIT":"1"}},
+            //"options": {"env": {"PYTORCH_JIT":"1"}},
             "args": [
-                "nerf_visualize.py",
+                "nerf.py",
+                "--accelerator=gpu",
+                "--devices=1",
                 "--homogeneous_projection=True",
-                "--name=statue",
-                "--model_path=/workspace/lightning_logs/version_53/checkpoints/epoch=10-step=187453.ckpt",
+                "--batch=1024",
+                "--dataset_path=/database/nerf_dataset/gate",
+                //"--model_path=/workspace/lightning_logs/version_24/checkpoints/epoch=13-step=22950.ckpt",
+                "--accumulate_grad_batches=2",
+                "--visualize=True",
+                "--threshold=50"
+            ]
+        },
+        {
+            "label": "unisurf",
+            "type": "shell",
+            "command": "python",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            },
+            //"options": {"env": {"PYTORCH_JIT":"1"}},
+            "args": [
+                "unisurf.py",
+                "--accelerator=gpu",
+                "--devices=1",
+                "--homogeneous_projection=True",
+                "--batch=1024",
+                "--dataset_path=/database/nerf_dataset/gate",
+                //"--model_path=/workspace/lightning_logs/version_24/checkpoints/epoch=13-step=22950.ckpt",
+                "--accumulate_grad_batches=2"
+            ]
+        },
+        {
+            "label": "unisurf viz",
+            "type": "shell",
+            "command": "python",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            },
+            //"options": {"env": {"PYTORCH_JIT":"1"}},
+            "args": [
+                "unisurf.py",
+                "--accelerator=gpu",
+                "--devices=1",
+                "--homogeneous_projection=True",
+                "--batch=1024",
+                "--dataset_path=/database/nerf_dataset/gate",
+                //"--model_path=/workspace/lightning_logs/version_24/checkpoints/epoch=13-step=22950.ckpt",
+                "--accumulate_grad_batches=2",
+                "--visualize=True",
+                "--threshold=50"
             ]
         }
     ]

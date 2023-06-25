@@ -10,28 +10,72 @@
             "request": "launch",
             "program": "nerf.py",
             "console": "integratedTerminal",
-            "env": {"PYTORCH_JIT":"0"},
+            //"env": {"PYTORCH_JIT":"0"},
             "args": [
                 "--accelerator=gpu",
                 "--devices=1",
                 "--homogeneous_projection=True",
                 "--batch=1024",
                 "--dataset_path=/database/nerf_dataset/gate",
-                //"--model_path=/workspace/lightning_logs/version_136/checkpoints/epoch=15-step=21600.ckpt",
+                //"--model_path=/workspace/lightning_logs/version_29/checkpoints/epoch=2-step=4050.ckpt",
+                "--accumulate_grad_batches=2",
+                //"--detect_anomaly=True"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Python: nerf viz",
+            "type": "python",
+            "request": "launch",
+            "program": "nerf.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--accelerator=gpu",
+                "--devices=1",
+                "--homogeneous_projection=True",
+                "--batch=1024",
+                "--dataset_path=/database/nerf_dataset/gate",
+                "--model_path=/workspace/lightning_logs/version_54/checkpoints/epoch=4-step=6750.ckpt",
+                "--accumulate_grad_batches=2",
+                "--visualize=True",
+                "--threshold=50"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Python: unisurf",
+            "type": "python",
+            "request": "launch",
+            "program": "unisurf.py",
+            "console": "integratedTerminal",
+            //"env": {"PYTORCH_JIT":"0"},
+            "args": [
+                "--accelerator=gpu",
+                "--devices=1",
+                "--homogeneous_projection=True",
+                "--batch=1024",
+                "--dataset_path=/database/nerf_dataset/gate",
+                "--model_path=/workspace/lightning_logs/version_24/checkpoints/epoch=13-step=22950.ckpt",
                 "--accumulate_grad_batches=2"
             ],
             "justMyCode": false
         },
         {
-            "name": "Python: nerf_vis",
+            "name": "Python: unisurf viz",
             "type": "python",
             "request": "launch",
-            "program": "nerf_visualize.py",
+            "program": "unisurf.py",
             "console": "integratedTerminal",
-            "env": {"PYTORCH_JIT":"0"},
             "args": [
+                "--accelerator=gpu",
+                "--devices=1",
                 "--homogeneous_projection=True",
-                "--model_path=/workspace/lightning_logs/version_1/checkpoints/epoch=11-step=8400.ckpt"
+                "--batch=1024",
+                "--dataset_path=/database/nerf_dataset/gate",
+                "--model_path=/workspace/lightning_logs/version_24/checkpoints/epoch=13-step=22950.ckpt",
+                "--accumulate_grad_batches=2",
+                "--visualize=True",
+                "--threshold=0.5"
             ],
             "justMyCode": false
         },
