@@ -1,9 +1,7 @@
 import torch
+from torch import nn
 
-from torch import jit, nn
-from typing import Dict, Optional
-from nerf.nerf import NerfDensity
-from nerf.nerf import NerfColor
+from nerf.nerf import NerfColor, NerfDensity
 
 
 def integrate_ray(t: torch.Tensor, sigma, c, infinite: bool = False, normalize: bool = False):

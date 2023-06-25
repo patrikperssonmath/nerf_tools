@@ -1,10 +1,11 @@
 
-from torch import nn
 from distutils.util import strtobool
-from nerf.nerf.nerf_render import NerfRender
-from nerf.util.util import uniform_sample, resample
+
 import torch
-from collections import namedtuple
+from torch import nn
+
+from nerf.nerf.nerf_render import NerfRender
+from nerf.util.util import resample, uniform_sample
 
 
 class Nerf(nn.Module):
@@ -33,7 +34,7 @@ class Nerf(nn.Module):
 
         return parent_parser
 
-    def forward(self, rays, tn, tf):
+    def forward(self, rays, tn, tf, step):
 
         t = uniform_sample(tn, tf, self.low_res_bins)
 
@@ -50,4 +51,4 @@ class Nerf(nn.Module):
 
         color_high_res, depth, _ = self.render.forward(rays, t_resamp)
 
-        return (color_high_res, depth, color_low_res)
+        return {"color_high_res": color_high_res, "depth": depth, "color_low_res": color_low_res}

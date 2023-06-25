@@ -1,12 +1,10 @@
 
-import torch
 import pytorch_lightning as pl
-
-from nerf.nerf.nerf import Nerf
-
-from nerf.util.util import uniform_sample, generate_rays, resample
-from distutils.util import strtobool
+import torch
 import torchvision
+
+from nerf.unisurf.nerf_ray_marching import Nerf
+from nerf.util.util import generate_rays
 
 
 def make_grid(image, output_nbr):
@@ -16,26 +14,19 @@ def make_grid(image, output_nbr):
 
 
 class LiNerf(pl.LightningModule):
-    def __init__(self, lr, **kwargs):
+    def __init__(self, lr, curv_weight, **kwargs):
         super().__init__()
 
         self.lr = lr
+        self.curv_weight = curv_weight
         self.nerf = Nerf(**kwargs)
-
-        """
-        nerf = Nerf(**kwargs).to("cuda:0")
-        ray = torch.randn((1024, 6), device="cuda:0", dtype=torch.float32)
-        tn = torch.rand((1024, 1), device="cuda:0", dtype=torch.float32)
-        tf = tn+torch.rand((1024, 1), device="cuda:0", dtype=torch.float32)
-
-        self.nerf = torch.jit.trace(nerf, (ray, tn, tf))
-        """
 
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = parent_parser.add_argument_group("LiNerf")
 
         parser.add_argument("--lr", type=float, default=1e-3)
+        parser.add_argument("--curv_weight", type=float, default=1e-3)
 
         Nerf.add_model_specific_args(parent_parser)
 
@@ -85,7 +76,7 @@ class LiNerf(pl.LightningModule):
             self.logger.experiment.add_image(
                 f"img_gt", make_grid(image, 4), self.global_step + batch_idx)
 
-    def render_frame(self, rays, tn, tf, max_chunk=2048):
+    def render_frame(self, rays, tn, tf, max_chunk=1024):
 
         with torch.no_grad():
 
@@ -98,10 +89,10 @@ class LiNerf(pl.LightningModule):
 
             for idx, (ray, tn, tf) in enumerate(zip(rays, tn, tf)):
 
-                result = self.nerf(ray, tn, tf)
+                result = self.nerf(ray, tn, tf, self.global_step)
 
-                color_list.append(result[0])
-                depth_list.append(result[1])
+                color_list.append(result["color_high_res"])
+                depth_list.append(result["depth"])
 
                 print(f"rendering ray batch {idx} of {len(rays)}", end="\r")
 
@@ -112,13 +103,18 @@ class LiNerf(pl.LightningModule):
 
         color_gt = batch["rgb"]
 
-        result = self.nerf(batch["ray"], batch["tn"], batch["tf"])
+        result = self.nerf(batch["ray"], batch["tn"],
+                           batch["tf"], self.global_step)
 
-        loss = (color_gt-result[-1]).abs().mean()
+        loss = (color_gt-result["color_high_res"]).abs().mean()
 
-        loss += (color_gt-result[0]).abs().mean()
+        if "color_low_res" in result:
+            loss += (color_gt-result["color_low_res"]).abs().mean()
 
-        loss /= 2.0
+            loss /= 2.0
+
+        if "curv" in result:
+            loss += self.curv_weight*result["curv"].mean()
 
         self.log("loss", loss)
 
