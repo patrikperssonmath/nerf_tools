@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 from nerf.nerf import NerfColor, NerfDensity
-from nerf.util.util import ray_to_points
+from nerf.util.util import ray_to_points, where
 
 
 def integrate_ray(t: torch.Tensor, sigma, c, infinite: bool = False, normalize: bool = False):
@@ -34,7 +34,7 @@ def integrate_ray(t: torch.Tensor, sigma, c, infinite: bool = False, normalize: 
 
         C = wi.sum(dim=-2, keepdim=True)
 
-        C = C.where(C > 0, torch.ones_like(C))
+        C = where(C > 0, C, torch.ones_like(C))
 
         wi = wi/C
 

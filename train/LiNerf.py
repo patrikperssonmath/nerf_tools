@@ -3,8 +3,7 @@ import pytorch_lightning as pl
 import torch
 import torchvision
 
-from nerf.unisurf.nerf_ray_marching import Nerf
-from nerf.util.util import generate_rays
+from nerf.util.util import to_rays, to_image
 
 
 def make_grid(image, output_nbr):
@@ -14,12 +13,12 @@ def make_grid(image, output_nbr):
 
 
 class LiNerf(pl.LightningModule):
-    def __init__(self, lr, curv_weight, **kwargs):
+    def __init__(self, model, lr, curv_weight, **kwargs):
         super().__init__()
 
         self.lr = lr
         self.curv_weight = curv_weight
-        self.nerf = Nerf(**kwargs)
+        self.nerf = model
 
     @staticmethod
     def add_model_specific_args(parent_parser):
@@ -27,8 +26,6 @@ class LiNerf(pl.LightningModule):
 
         parser.add_argument("--lr", type=float, default=1e-3)
         parser.add_argument("--curv_weight", type=float, default=1e-3)
-
-        Nerf.add_model_specific_args(parent_parser)
 
         return parent_parser
 
@@ -42,23 +39,14 @@ class LiNerf(pl.LightningModule):
             tn = batch["tn"]
             tf = batch["tf"]
 
-            B, C, H, W = image.shape
+            B, _, H, W = image.shape
 
-            rays = generate_rays(T, intrinsics, H, W)
-
-            tn = tn.view(B, 1, 1, 1).expand(-1, 1, H, W)
-            tf = tf.view(B, 1, 1, 1).expand(-1, 1, H, W)
-
-            rays = rays.view(B, -1, H*W).permute(0, 2, 1).reshape(B*H*W, -1)
-            tn = tn.view(B, -1, H*W).permute(0, 2, 1).reshape(B*H*W, -1)
-            tf = tf.view(B, -1, H*W).permute(0, 2, 1).reshape(B*H*W, -1)
+            rays, tn, tf = to_rays(T, intrinsics, tn, tf, B, H, W)
 
             color, depth = self.render_frame(rays, tn, tf)
 
-            color = color.reshape(B, H*W, -1).permute(0,
-                                                      2, 1).view(B, -1, H, W)
-            depth = depth.reshape(B, H*W, -1).permute(0,
-                                                      2, 1).view(B, -1, H, W)
+            color = to_image(color, B, H, W)
+            depth = to_image(depth, B, H, W)
 
             self.logger.experiment.add_image(
                 f"img_rendered", make_grid(color, 4), self.global_step + batch_idx)
@@ -99,7 +87,6 @@ class LiNerf(pl.LightningModule):
         return torch.cat(color_list, dim=0), torch.cat(depth_list, dim=0)
 
     def training_step(self, batch, batch_idx):
-        # training_step defines the train loop.
 
         color_gt = batch["rgb"]
 

@@ -4,7 +4,7 @@ from distutils.util import strtobool
 import pytorch_lightning as pl
 import torch
 
-from nerf.nerf.nerf import Nerf
+from nerf.unisurf.nerf_ray_marching import Nerf
 from nerf_visualizer import NerfVisualizer
 from train.LiNerf import LiNerf
 from train.trainer import Trainer
@@ -52,5 +52,5 @@ if __name__ == "__main__":
         visualize = NerfVisualizer(device,
                                    li_model.nerf.render,
                                    **param)
-
+        
         visualize.run()

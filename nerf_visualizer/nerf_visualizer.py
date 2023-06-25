@@ -6,13 +6,29 @@ import os
 
 
 class NerfVisualizer:
-    def __init__(self, device, nerf_render, limits, nbr_samples, threshold, name="") -> None:
+    def __init__(self, device, nerf_render, samples, threshold, name, x_min, x_max, y_min, y_max, z_min, z_max, **kwargs) -> None:
         self.device = device
         self.nerf_render = nerf_render
-        self.limits = limits
-        self.nbr_samples = nbr_samples
+        self.limits = [x_min, x_max, y_min, y_max, z_min, z_max]
+        self.nbr_samples = samples
         self.threshold = threshold
         self.name = name
+
+    @staticmethod
+    def add_model_specific_args(parent_parser):
+        parser = parent_parser.add_argument_group("Visualizer")
+
+        parser.add_argument("--samples", type=int, default=256)
+        parser.add_argument("--threshold", type=float, default=0.5)
+        parser.add_argument("--name", type=str, default="output_mesh")
+        parser.add_argument("--x_min", type=float, default=-0.125)
+        parser.add_argument("--y_min", type=float, default=-0.125)
+        parser.add_argument("--z_min", type=float, default=-0.125)
+        parser.add_argument("--x_max", type=float, default=0.125)
+        parser.add_argument("--y_max", type=float, default=0.125)
+        parser.add_argument("--z_max", type=float, default=0.125)
+
+        return parent_parser
 
     def run(self):
 
