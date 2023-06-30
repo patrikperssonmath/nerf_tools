@@ -99,7 +99,8 @@ class Solution:
 
         x_cen = x - x_mean
 
-        s = np.max(np.abs(x_cen), keepdims=True)
+        #s = np.max(np.abs(x_cen), keepdims=True)
+        s = np.max(np.linalg.norm(x_cen[0:3], axis=0), keepdims=True)
 
         #s = iqr(np.abs(x_cen).reshape(-1))[1]
 
@@ -111,6 +112,17 @@ class Solution:
         Tinv = np.linalg.inv(T)
 
         T = 1/s*T
+
+        ### test ###
+
+        x = to_homogen(x)
+        x = Tinv@x
+
+        x_mean = np.mean(x, axis=-1, keepdims=True)
+
+        x_cen = x - x_mean
+
+        s = np.max(np.linalg.norm(x_cen[0:3], axis=0), keepdims=True)
 
         return T, Tinv
 
