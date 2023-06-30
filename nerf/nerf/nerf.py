@@ -40,7 +40,7 @@ class Nerf(nn.Module):
 
         # do one round to find out important sampling regions
 
-        color_low_res, _, w = self.render_low_res.forward(rays, t)
+        color_low_res, _, w, t = self.render_low_res.forward(rays, t)
 
         with torch.no_grad():
 
@@ -49,6 +49,6 @@ class Nerf(nn.Module):
 
         t_resamp = torch.cat((t, t_resamp), dim=1)
 
-        color_high_res, depth, _ = self.render.forward(rays, t_resamp)
+        color_high_res, depth, _, _ = self.render.forward(rays, t_resamp)
 
         return {"color_high_res": color_high_res, "depth": depth, "color_low_res": color_low_res}

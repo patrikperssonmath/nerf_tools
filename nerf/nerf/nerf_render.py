@@ -38,7 +38,7 @@ def integrate_ray(t: torch.Tensor, sigma, c, infinite: bool = False, normalize: 
 
         wi = wi/C
 
-    return (wi*c).sum(dim=-2), (wi*t).sum(dim=-2), wi
+    return (wi*c).sum(dim=-2), (wi*t).sum(dim=-2), wi, t
 
 
 class NerfRender(nn.Module):
