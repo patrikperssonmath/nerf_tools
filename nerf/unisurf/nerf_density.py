@@ -18,28 +18,28 @@ class NerfDensity(nn.Module):
 
         self.dnn1 = nn.Sequential(
             weight_norm(nn.Linear(2*pos_dim*Lp+pos_dim, 256)),
-            nn.ReLU(),
+            nn.Softplus(beta=100),
             weight_norm(nn.Linear(256, 256)),
-            nn.ReLU(),
+            nn.Softplus(beta=100),
             weight_norm(nn.Linear(256, 256)),
-            nn.ReLU(),
+            nn.Softplus(beta=100),
             weight_norm(nn.Linear(256, 256)),
-            nn.ReLU(),
+            nn.Softplus(beta=100),
             weight_norm(nn.Linear(256, 256)),
-            nn.ReLU()
+            nn.Softplus(beta=100)
         )
 
         self.dnn2 = nn.Sequential(
             weight_norm(nn.Linear(2*pos_dim*Lp+256+pos_dim, 256)),
-            nn.ReLU(),
+            nn.Softplus(beta=100),
             weight_norm(nn.Linear(256, 256)),
-            nn.ReLU(),
+            nn.Softplus(beta=100),
             weight_norm(nn.Linear(256, 256)),
-            nn.ReLU(),
+            nn.Softplus(beta=100),
             weight_norm(nn.Linear(256, 256)),
-            nn.ReLU(),
+            nn.Softplus(beta=100),
             weight_norm(nn.Linear(256, 256)),
-            nn.ReLU()
+            nn.Softplus(beta=100)
         )
 
         self.density = nn.Sequential(

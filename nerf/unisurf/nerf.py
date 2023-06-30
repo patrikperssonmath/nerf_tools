@@ -7,16 +7,16 @@ import torch
 
 
 class Nerf(nn.Module):
-    def __init__(self, Lp, Ld, low_res_bins, high_res_bins, homogeneous_projection, **kwargs) -> None:
+    def __init__(self, Lp, Ld, low_res_bins, high_res_bins, homogeneous_projection, nerf_integration, **kwargs) -> None:
         super().__init__()
 
         self.low_res_bins = low_res_bins
 
         self.high_res_bins = high_res_bins
 
-        self.render = NerfRender(Lp, Ld, homogeneous_projection)
+        self.render = NerfRender(Lp, Ld, homogeneous_projection, nerf_integration)
 
-        self.render_low_res = NerfRender(Lp, Ld, homogeneous_projection)
+        self.render_low_res = NerfRender(Lp, Ld, homogeneous_projection, nerf_integration)
 
     @staticmethod
     def add_model_specific_args(parent_parser):
@@ -25,9 +25,12 @@ class Nerf(nn.Module):
         parser.add_argument("--Lp", type=int, default=10)
         parser.add_argument("--Ld", type=int, default=4)
         parser.add_argument("--low_res_bins", type=int, default=64)
-        parser.add_argument("--high_res_bins", type=int, default=128)
+        parser.add_argument("--high_res_bins", type=int, default=64)
 
         parser.add_argument("--homogeneous_projection",
+                            type=strtobool, default=True)
+        
+        parser.add_argument("--nerf_integration",
                             type=strtobool, default=True)
 
         return parent_parser
@@ -38,7 +41,7 @@ class Nerf(nn.Module):
 
         # do one round to find out important sampling regions
 
-        color_low_res, _, w = self.render_low_res.forward(rays, t)
+        color_low_res, _, w, t = self.render_low_res.forward(rays, t)
 
         with torch.no_grad():
 
@@ -47,6 +50,6 @@ class Nerf(nn.Module):
 
         t_resamp = torch.cat((t, t_resamp), dim=1)
 
-        color_high_res, depth, _ = self.render.forward(rays, t_resamp)
+        color_high_res, depth, _, _ = self.render.forward(rays, t_resamp)
 
         return {"color_high_res": color_high_res, "depth": depth, "color_low_res": color_low_res}

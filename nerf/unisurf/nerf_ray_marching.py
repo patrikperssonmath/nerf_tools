@@ -35,7 +35,7 @@ class Nerf(nn.Module):
         parser.add_argument("--intersection_itr", type=int, default=8)
 
         parser.add_argument("--tau", type=float, default=0.5)
-        parser.add_argument("--noise", type=float, default=1e-3)
+        parser.add_argument("--noise", type=float, default=1e-4)
         parser.add_argument("--delta_max", type=float, default=1)
         parser.add_argument("--delta_min", type=float, default=0.05)
         parser.add_argument("--beta", type=float, default=1e-4)
@@ -72,11 +72,11 @@ class Nerf(nn.Module):
 
             t = torch.cat((tu, t_smp), dim=-2)
 
-            color_high_res, depth, _ = self.render.forward(ray, t)
+            color_high_res, depth, _, _ = self.render.forward(ray, t)
 
         else:
 
-            color_high_res, depth, _ = self.render.forward(
+            color_high_res, depth, _, _ = self.render.forward(
                 ray, ts, volumetric=False)
 
         x_s = ray_to_points(ray, ts)[0]

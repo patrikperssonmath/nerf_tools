@@ -16,11 +16,11 @@ class NerfColor(nn.Module):
 
         self.color = nn.Sequential(
             weight_norm(nn.Linear(2*dir_dim*Ld + dir_dim + 3 + 4 + 256, 256)),
-            nn.ReLU(),
+            nn.Softplus(beta=100),
             weight_norm(nn.Linear(256, 256)),
-            nn.ReLU(),
+            nn.Softplus(beta=100),
             weight_norm(nn.Linear(256, 256)),
-            nn.ReLU(),
+            nn.Softplus(beta=100),
             weight_norm(nn.Linear(256, 3)),
             nn.Sigmoid()
         )

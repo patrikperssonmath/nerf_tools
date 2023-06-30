@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from nerf.unisurf import NerfDensity
 from nerf.unisurf import NerfColor
-from nerf.util.util import ray_to_points
+from nerf.util.util import ray_to_points, where
 
 
 class DensityActivation(nn.Module):
@@ -17,25 +17,68 @@ class DensityActivation(nn.Module):
         return self.sigmoid(-10.0*x)
 
 
+def integrate_ray_nerf(t: torch.Tensor, sigma, c, infinite: bool = False, normalize: bool = False):
+
+    dt = t[..., 1:, :] - t[..., :-1, :]
+
+    # In the original imp the last distance is infinity.
+    # Is this really correct since the integration is between
+    # tn and tf where tf is not necessarily inf
+    # practical consequence: at least the last color point will
+    # receive a high weight even if the last sigma is only slightly positive.
+
+    if infinite:
+        dt = torch.cat((dt, 1e10*torch.ones_like(dt[..., 0:1, :])), dim=-2)
+    else:
+        dt = torch.cat((dt, torch.zeros_like(dt[..., 0:1, :])), dim=-2)
+
+    sdt = sigma*dt
+
+    Ti = torch.exp(-torch.cumsum(sdt, dim=-2))[..., 0:-1, :]
+
+    Ti = torch.cat((torch.ones_like(Ti[..., 0:1, :]), Ti), dim=-2)
+
+    alpha = (1.0 - torch.exp(-sdt))
+
+    wi = Ti*alpha
+
+    if normalize:
+
+        C = wi.sum(dim=-2, keepdim=True)
+
+        C = where(C > 0, C, torch.ones_like(C))
+
+        wi = wi/C
+
+    return (wi*c).sum(dim=-2), (wi*t).sum(dim=-2), wi, t
+
+
 def integrate_ray(t, sigma, color):
+
+    # test = sigma.cpu().detach().numpy()
 
     alpha = torch.cat((torch.ones_like(sigma[..., 0:1, :]), 1.0-sigma), dim=-2)
 
     wi = sigma*torch.cumprod(alpha, dim=-2)[..., :-1, :]
 
-    return (wi*color).sum(dim=-2), (wi*t).sum(dim=-2), wi
+    return (wi*color).sum(dim=-2), (wi*t).sum(dim=-2), wi, t
 
 
 class NerfRender(nn.Module):
 
-    def __init__(self, Lp, Ld, homogeneous_projection) -> None:
+    def __init__(self, Lp, Ld, homogeneous_projection, nerf_integration=False) -> None:
         super().__init__()
 
         self.nerf_density = NerfDensity(Lp, homogeneous_projection)
 
         self.nerf_color = NerfColor(Ld)
 
-        self.density_activation = DensityActivation()
+        if nerf_integration:
+            self.density_activation = nn.ReLU()
+        else:
+            self.density_activation = DensityActivation()
+
+        self.nerf_integration = nerf_integration
 
     def forward(self, ray, t, volumetric=True):
 
@@ -49,9 +92,15 @@ class NerfRender(nn.Module):
 
         if volumetric:
 
-            return integrate_ray(t, sigma, color)
+            if self.nerf_integration:
 
-        return color.squeeze(-2), t.squeeze(-2), None
+                return integrate_ray_nerf(t, sigma, color)
+
+            else:
+
+                return integrate_ray(t, sigma, color)
+
+        return color.squeeze(-2), t.squeeze(-2), None, t
 
     def evaluate_density_gradient(self, p):
 

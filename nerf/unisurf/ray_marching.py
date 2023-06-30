@@ -12,6 +12,8 @@ def find_intersection(rays, tn, tf, model, tau=0.5, N=256, itr=8):
 
     indices, mask = find_intersection_idx_(sigma, tau)
 
+    #test = sigma.cpu().detach().numpy()
+
     t1 = torch.gather(t, -2, indices)
     f1 = torch.gather(sigma-tau, -2, indices)
 
